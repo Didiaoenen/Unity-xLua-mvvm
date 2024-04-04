@@ -1,0 +1,106 @@
+-- Copyright (c) 2021 榆柳松
+-- https://github.com/wzhengsen/LuaOOP
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in
+-- all copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+-- THE SOFTWARE.
+
+-- Used to instruct const methods internally,
+-- external code doesn't need to care about this.
+-- Ensure that the value does not exist in the BitsMap.
+local __InternalConstMethod = 2 ^ 10;
+
+local WeakTable = {__mode = "k"};
+
+local Config = require("OOP.Config");
+local get = Config.get;
+local set = Config.set;
+local opt = Config.opt;
+
+local public = Config.Qualifiers.public;
+local private = Config.Qualifiers.private;
+local protected = Config.Qualifiers.protected;
+local static = Config.Qualifiers.static;
+local const = Config.Qualifiers.const;
+local final = Config.Qualifiers.final;
+local virtual = Config.Qualifiers.virtual;
+local override = Config.Qualifiers.override;
+
+local BitsMap = {
+    [public] = 2 ^ 0,
+    [private] = 2 ^ 1,
+    [protected] = 2 ^ 2,
+    [static] = 2 ^ 3,
+    [const] = 2 ^ 4,
+    [final] = 2 ^ 5,
+    [get] = 2 ^ 6,
+    [set] = 2 ^ 7,
+    [virtual] = 2 ^ 8,
+    [override] = 2 ^ 9,
+    [opt] = 2 ^ 10,
+};
+
+if Config.LuaVersion > 5.2 then
+    for k, v in pairs(BitsMap) do
+        BitsMap[k] = math.tointeger(v);
+    end
+end
+
+local Permission = {
+    public = BitsMap[public],
+    private = BitsMap[private],
+    protected = BitsMap[protected],
+    static = BitsMap[static],
+    const = BitsMap[const],
+    final = BitsMap[final],
+    get = BitsMap[get],
+    set = BitsMap[set],
+    virtual = BitsMap[virtual],
+    override = BitsMap[override],
+    opt = BitsMap[opt],
+};
+
+local Internal = {
+    BitsMap = BitsMap,
+    Permission = Permission,
+    __InternalConstMethod = __InternalConstMethod,
+}
+
+Internal.NamedClasses = {};
+Internal.ClassesChildrenByName = {};
+Internal.DeathMark = setmetatable({},WeakTable);
+Internal.AllClasses = setmetatable({},WeakTable);
+Internal.AllStructs = setmetatable({},WeakTable);
+Internal.AllEnumerations = setmetatable({},WeakTable);
+Internal.ClassesReadable = setmetatable({},WeakTable);
+Internal.ClassesWritable = setmetatable({},WeakTable);
+Internal.ClassesBases = setmetatable({},WeakTable);
+-- Record which classes inherit from this class.
+Internal.ClassesChildren = setmetatable({},WeakTable);
+Internal.ClassesMembers = setmetatable({},WeakTable);
+Internal.ClassesMetas = setmetatable({},WeakTable);
+-- In order to keep __new/__delete/__singleton from being freely available and used externally,
+-- they are stored in ClassesNew/ClassesDelete/ClassesSingleton instead of directly in the class.
+Internal.ClassesNew = setmetatable({},WeakTable);
+Internal.ClassesDelete = setmetatable({},WeakTable);
+Internal.ClassesSingleton = setmetatable({},WeakTable);
+Internal.ObjectsAll = setmetatable({},WeakTable);
+Internal.ObjectsCls = setmetatable({},WeakTable);
+Internal.ClassesStatic = setmetatable({},WeakTable);
+Internal.ClassesStaticProperties = setmetatable({},WeakTable);
+
+return Internal;

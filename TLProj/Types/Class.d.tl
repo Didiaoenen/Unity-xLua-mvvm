@@ -1,0 +1,1 @@
+global class: function(...: any): any

@@ -1,0 +1,88 @@
+local ListExtention = require("LuaFramework.Common.ListExtention")
+
+function clone(object)
+    local lookup_table = {}
+    local function _copy(object)
+        if type(object) ~= "table" then
+            return object
+        elseif lookup_table[object] then
+            return lookup_table[object]
+        end
+        local newObject = {}
+        lookup_table[object] = newObject
+        for key, value in pairs(object) do
+            newObject[_copy(key)] = _copy(value)
+        end
+        return setmetatable(newObject, getmetatable(object))
+    end
+    return _copy(object)
+end
+
+function try(block)
+	local main = block[1]
+	local catch = block.catch
+	local finally = block.finally
+	
+	local status, mresult = pcall(main)
+
+	local catched, cresult, fresult
+	
+	if not status and catch and type(catch) == "function" then
+		catched = true
+		cresult = catch(mresult)
+	end
+	
+	if finally and type(finally) == "function" then
+		fresult = finally()
+	end
+	
+	if mstatus then
+        if not fresult then
+            if not cresult then
+                return mresult
+            else
+                return cresult
+            end
+        else
+            return fresult
+        end
+	else
+        if not catched then
+            error(mstatus)
+        end
+	end
+end
+
+function bindevent(ui, callback, ...)
+    assert(ui and callback, "")
+    local args = {...}
+    return function (...)
+        callback(ui, ..., table.unpack(args))
+    end
+end
+
+function setcallback(t, value, addcb, removecb)
+    if value and value.callback ~= nil then
+        if addcb then
+            addcb()
+        end
+        table.insert(t, value)
+    else
+        ListExtention.Find(t, function (i, v)
+            if value.this == value.this then
+                if removecb then
+                    removecb()
+                end
+                return table.remove(t, i)
+            end
+        end)
+    end
+end
+
+function classget(cls, key)
+    return cls[key]
+end
+
+function classset(cls, key, value)
+    cls[key] = value
+end

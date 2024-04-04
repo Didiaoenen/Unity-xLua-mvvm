@@ -1,0 +1,155 @@
+-- Copyright (c) 2021 榆柳松
+-- https://github.com/wzhengsen/LuaOOP
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in
+-- all copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+-- THE SOFTWARE.
+
+local Config = require("OOP.Config");
+local Internal = require("OOP.Variant.Internal");
+local Permission = Internal.Permission;
+local p_opt = Permission.opt;
+local p_static = Permission.static;
+local p_virtual = Permission.virtual;
+local p_get = Permission.get;
+local p_gs = Permission.get + Permission.set;
+
+local BaseFunctions = require("OOP.BaseFunctions");
+local bits = BaseFunctions.bits;
+
+local virtualKey = nil;
+local decor = 0;
+local cls = 0;
+
+local Router = {
+    BitsMap = Internal.BitsMap,
+    Permission = Internal.Permission,
+}
+
+Router.Router = setmetatable({},{
+    __index = function (self,key)
+        return Router.Pass(self,key);
+    end,
+    __newindex = function (self,key,val)
+        Router.Done(self,key,val);
+    end
+});
+
+-- In Release mode, it is sufficient to use the empty implementation.
+function Router.SimulationVirtualFunction(...)
+    return setmetatable({},{
+        __index = function(self)
+            return self;
+        end,
+        __newindex = function (_,_,value)
+            Router.Done(nil,virtualKey,value);
+        end
+    })
+end
+
+-- In non-debug mode, no attention is paid to any qualifiers other than static.
+function Router.Pass(self,key)
+    local bit = Internal.BitsMap[key];
+    if bit then
+        decor = bits.bor(decor,bit);
+    else
+        local isVirtual = bits.band(decor,p_virtual) ~= 0;
+        if isVirtual then
+            virtualKey = key;
+            return Router.SimulationVirtualFunction;
+        end
+        local get_set = bits.band(decor,p_gs);
+        if get_set ~= 0 then
+            local property = (get_set == p_get and Internal.ClassesReadable or Internal.ClassesWritable)[cls][key];
+            return property and property[1] or nil;
+        end
+        local opt = bits.band(decor,p_opt);
+        if opt ~= 0 then
+            local property = Internal.ClassesWritable[cls][key];
+            return property and property[1] or nil;
+        end
+    end
+    return self;
+end;
+
+function Router.Done(_,key,value)
+    if nil == key or bits.band(decor,p_virtual) ~= 0 then
+        -- Skip pure virtual functions.
+        return;
+    end
+    local isStatic = bits.band(decor,p_static) ~= 0;
+    local meta = Config.MetaMapName[key];
+    if meta then
+        if isStatic then
+            -- Meta methods are special and can only accept static qualifiers.
+            local mt = getmetatable(cls);
+            mt[meta] = value;
+            BaseFunctions.Update2ChildrenClassMeta(cls,meta,value);
+        else
+            local metas = Internal.ClassesMetas[cls];
+            metas[meta] = value;
+            BaseFunctions.Update2ChildrenWithKey(cls,Internal.ClassesMetas,meta,value);
+        end
+        return;
+    end
+
+    local vt = type(value);
+    local gs = bits.band(decor,p_gs);
+    local opt = bits.band(decor,p_opt);
+
+    if gs ~= 0 or opt ~= 0 or isStatic then
+        local cms = Internal.ClassesMembers[cls];
+        local cm = cms[key];
+        if cm ~= nil then
+            cms[key] = nil;
+            BaseFunctions.Update2ChildrenWithKey(cls,Internal.ClassesMembers,key,nil,true);
+        end
+        if gs ~= 0 then
+            (gs == p_get and Internal.ClassesReadable or Internal.ClassesWritable)[cls][key] = {value,isStatic};
+        elseif opt ~= 0 then
+            Internal.ClassesWritable[cls][key] = {value,isStatic};
+        else
+            local cs = Internal.ClassesStatic[cls];
+            local st = cs[key];
+            if not st then
+                st = {value};
+                cs[key] = st;
+            else
+                st[1] = value;
+            end
+        end
+    else
+        local isFunction = "function" == vt;
+        Internal.ClassesStatic[cls][key] = nil;
+        Internal.ClassesReadable[cls][key] = nil;
+        Internal.ClassesWritable[cls][key] = nil;
+        if isFunction then
+            rawset(cls,key,value);
+        elseif "table" ~= vt or (not Internal.AllEnumerations[value] and not Internal.AllClasses[value]) then
+            Internal.ClassesMembers[cls][key] = value;
+            BaseFunctions.Update2ChildrenWithKey(cls,Internal.ClassesMembers,key,value);
+        end
+    end
+end;
+
+function Router.Begin(self,outCls,key)
+    decor = 0;
+    cls = outCls;
+    return Router.Pass(self,key);
+end
+
+return Router;

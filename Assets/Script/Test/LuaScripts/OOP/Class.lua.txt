@@ -1,0 +1,165 @@
+-- Copyright (c) 2021 榆柳松
+-- https://github.com/wzhengsen/LuaOOP
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in
+-- all copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+-- THE SOFTWARE.
+
+local Config = require("OOP.Config");
+local ctor = Config.ctor;
+
+local __internal__ = Config.__internal__;
+
+local Internal = require("OOP.Variant.Internal");
+local Functions = require("OOP.Variant.ReleaseFunctions");
+
+local ClassCreateLayer = 0;
+local function ObjectInit(obj,cls,all,...)
+    -- When there is no constructor of its own, if there are less than 2 base classes,
+    -- the constructor is automatically found.
+    local init = all[ctor] or (#Internal.ClassesBases[cls] == 1 and cls[ctor] or nil);
+    -- Do not get ctor from ClassesAll and make it search automatically.
+    if init then
+        -- Avoid recursively polluting the classCreateLayer variable when create a new object in the ctor.
+        -- Cache it, after the call, set it to classCreateLayer+tempCreateLayer
+        -- The final call ends with the value -1.
+        local tempCreateLayer = ClassCreateLayer;
+        ClassCreateLayer = 0;
+        local ok,msg = pcall(init,obj,...);
+        ClassCreateLayer = ClassCreateLayer + tempCreateLayer - 1;
+        if not ok then
+            error(msg);
+        end
+    else
+        ClassCreateLayer = ClassCreateLayer - 1;
+    end
+end
+
+local function CreateClassNew(cls,clsAll,members)
+    return function(...)
+        ClassCreateLayer = ClassCreateLayer + 1;
+        local ok,obj,all = pcall(Functions.CreateClassObject,cls,...);
+        if not ok or nil == obj then
+            if obj then
+                print("An error occurred when creating the object -",obj);
+            end
+            ClassCreateLayer = ClassCreateLayer - 1;
+            if not ok then
+                error(obj);
+            end
+            return nil;
+        end
+
+        if ClassCreateLayer == 1 then
+            Functions.RegisterMembers(all,members);
+            local metas = getmetatable(obj);
+            if not metas or rawget(metas,__internal__) then
+                -- If the object does not have a meta table or if the meta table is internal to LuaOOP,
+                -- then it is sufficient to use that meta table directly.
+                setmetatable(obj,Internal.ClassesMetas[cls]);
+            else
+                -- Otherwise, the meta-table is retrofited.
+                Internal.ObjectsCls[obj] = cls;
+                Functions.RetrofitExternalObjectMeta(cls,metas,false);
+            end
+            ObjectInit(obj,cls,clsAll,...);
+        else
+            ClassCreateLayer = ClassCreateLayer - 1;
+        end
+
+        return obj;
+    end;
+end
+
+local class = Functions.class;
+
+---Create a class, passing in parameters to inherit from other classes.
+---
+---@vararg string|table
+---@return table @class
+class.new = function(...)
+    local args = {...};
+    local cls,metas,name = Functions.CheckClass(args);
+    if rawget(metas,__internal__) then
+        Functions.MakeInternalObjectMeta(cls,metas);
+    else
+        -- The third parameter true indicates that this meta-table was created externally
+        -- and that it is forced to transform this meta-table.
+        -- That is, the difference between the SOL class and the FILE* class is.
+        -- 1. the use of names to force the retrofitting of the SOL class (true).
+        -- 2. the use of a table to inherit the FILE* class (false).
+        Functions.RetrofitExternalObjectMeta(cls,metas,true);
+    end
+
+    local all,bases,members = Functions.CreateClassTables(cls);
+
+    local clsMeta = {};
+    setmetatable(cls,clsMeta);
+
+    Functions.ClassInherite(cls,args,bases,members,Internal.ClassesMetas[cls],name);
+
+    Functions.AttachClassFunctions(
+        cls,
+        Functions.CreateClassIs(cls,bases),
+        CreateClassNew(cls,all,members),
+        Functions.CreateClassDelete(cls)
+    );
+
+    clsMeta.__name = name;
+    clsMeta.__index = Functions.ClassGet;
+    clsMeta.__newindex = Functions.ClassSet;
+    return cls;
+end
+
+class.raw = function(first,second,third)
+    if nil == third then
+        if nil == second then
+            return first;
+        else
+            return first[second];
+        end
+    else
+        first[second] = third;
+    end
+end;
+
+class.to = function(obj,cls)
+    local t = type(cls);
+    if t == "string" then
+        cls = Internal.NamedClasses[cls];
+    elseif t == "table" then
+        if not Internal.AllClasses[cls] then
+            cls = nil;
+        end
+    end
+    if nil == cls then
+        return obj;
+    end
+    local metas = getmetatable(obj);
+    if not metas or rawget(metas,__internal__) then
+        setmetatable(obj,Internal.ClassesMetas[cls]);
+    else
+        Functions.RetrofitExternalObjectMeta(cls,metas,false);
+        Internal.ObjectsCls[obj] = cls;
+    end
+    if type(obj) == "userdata" and not Internal.ObjectsAll[obj] then
+        Internal.ObjectsAll[obj] = {};
+    end
+    return obj;
+end;
+
+class.del = Functions.CallDel;

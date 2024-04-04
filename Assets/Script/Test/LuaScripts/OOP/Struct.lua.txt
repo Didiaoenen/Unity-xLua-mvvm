@@ -1,0 +1,155 @@
+-- Copyright (c) 2021 榆柳松
+-- https://github.com/wzhengsen/LuaOOP
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in
+-- all copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+-- THE SOFTWARE.
+
+local Config = require("OOP.Config");
+local ctor = Config.ctor;
+
+local Internal = require("OOP.Variant.Internal");
+local BaseFunctions = require("OOP.BaseFunctions");
+
+local StructTemp = {}
+
+function StructTemp.MetaCascadeGet(bases,tab)
+    return {
+        __index = function(_, k)
+            for _,base in ipairs(bases) do
+                local ret = tab[base][k];
+                if nil ~= ret then
+                    return ret;
+                end
+            end
+        end
+    };
+end
+
+function StructTemp.CascadeRawGet(proto,key)
+    local members = Internal.StructsMembers[proto];
+    local ret = members[key];
+    if nil ~= ret then
+        return ret;
+    end
+    ret = rawget(proto,key);
+    if nil ~= ret then
+        return ret;
+    end
+    local bases = Internal.StructsBases[proto];
+    for _,base in ipairs(bases) do
+        ret = StructTemp.CascadeRawGet(base,key);
+        if nil ~= ret then
+            return ret;
+        end
+    end
+end
+
+function StructTemp.StructBuild(bases)
+    return function (proto)
+        if nil ~= getmetatable(proto) then
+            print("Struct be used on a table with metatable.");
+        end
+        -- Member table containing only the fields of non-function and non-meta methods.
+        -- And these fields are not changed after initialization.
+        local members = setmetatable({},StructTemp.MetaCascadeGet(bases,Internal.StructsMembers));
+        local delays = setmetatable({},StructTemp.MetaCascadeGet(bases,Internal.StructsDelays));
+        Internal.StructsMembers[proto] = members;
+        Internal.StructsDelays[proto] = delays;
+        Internal.StructsBases[proto] = bases;
+        Internal.AllStructs[proto] = true;
+
+        -- 1.Here all "members" are assigned only from the inherited structure.
+        for _,base in ipairs(bases) do
+            local baseMembers = Internal.StructsMembers[base];
+            for k,v in pairs(baseMembers) do
+                members[k] = v;
+            end
+        end
+
+        -- 2.Moves non-meta methods and non-function fields from the prototype to members.
+        for k,v in pairs(proto) do
+            if not Config.Meta[k] and type(v) ~= "function" then
+                members[k] = v;
+                proto[k] = nil;
+            end
+        end
+
+        -- 3.Assign the inherited value to the current structure.
+        -- Note:
+        -- Do not combine this step with step 1 because some fields may be delayed declarations
+        -- and the members of the structure do not contain delayed declarations of the fields.
+        for _,base in ipairs(bases) do
+            for k,v in pairs(base) do
+                if nil == proto[k] then
+                    proto[k] = v;
+                end
+            end
+        end
+
+        proto.__index = function (_,k)
+            return StructTemp.CascadeRawGet(proto,k);
+        end;
+
+        proto.__newindex = nil;
+
+        return setmetatable(proto,{
+            __index = function (_,k)
+                local ret = members[k];
+                if ret ~= nil then
+                    return ret;
+                end
+                ret = delays[k];
+                if ret ~= nil then
+                    return ret;
+                end
+                for _,base in ipairs(bases) do
+                    ret = base[k];
+                    if ret ~= nil then
+                        return ret;
+                    end
+                end
+            end,
+            __newindex = function (_,k,v)
+                if Config.Meta[k] or type(v) == "function" then
+                    rawset(proto,k,v);
+                else
+                    delays[k] = v;
+                end
+            end,
+            __call = function (_,...)
+                local sObj = setmetatable(BaseFunctions.Copy(members),proto);
+                local _ctor = proto[ctor];
+                if _ctor then
+                    _ctor(sObj, ...);
+                end
+                return sObj;
+            end
+        });
+    end;
+end
+
+local function Struct(...)
+    local len = select("#",...);
+    if len == 1 and nil == Internal.AllStructs[(...)] then
+        return StructTemp.StructBuild({})(...);
+    end
+    local bases = {...};
+    return StructTemp.StructBuild(bases);
+end
+
+return Struct;

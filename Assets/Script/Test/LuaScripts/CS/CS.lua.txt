@@ -1,0 +1,391 @@
+CS = CS or {}
+
+local CSObject = {
+    Simple = CS.Assembly_CSharp.Assets.Script.Simple,
+    Execution = CS.Assembly_CSharp.Assets.Script.Simple.Execution,
+    Asynchronous = CS.Assembly_CSharp.Assets.Script.Simple.Asynchronous,
+}
+rawset(CS, "Simple", CSObject.Simple)
+rawset(CS, "Execution", CSObject.Execution)
+rawset(CS, "Asynchronous", CSObject.Asynchronous)
+
+--保存类类型的虚表
+local _class = {}
+ 
+-- added by wsh @ 2017-12-09
+-- 自定义类型
+ClassType = {
+	class = 1,
+	instance = 2,
+}
+
+function BaseClass(classname, super)
+	assert(type(classname) == "string" and #classname > 0)
+	-- 生成一个类类型
+	local class_type = {}
+	
+	-- 在创建对象的时候自动调用
+	class_type.__init = false
+	class_type.__delete = false
+	class_type.__cname = classname
+	class_type.__ctype = ClassType.class
+	
+	class_type.super = super
+	class_type.New = function(...)
+		-- 生成一个类对象
+		local obj = {}
+		obj._class_type = class_type
+		obj.__ctype = ClassType.instance
+		
+		-- 在初始化之前注册基类方法
+		setmetatable(obj, { 
+            __newindex = function(t,k,v)
+                _class[class_type][k] = v
+                _class[class_type][k .. "ToString"] = function()
+                    return k
+                end
+            end,
+			__index = function(t,k)
+                return _class[class_type][k]
+            end,
+		})
+		-- 调用初始化方法
+		do
+			local create
+			create = function(c, ...)
+				if c.super then
+					create(c.super, ...)
+				end
+				if c.ctor then
+					c.ctor(obj, ...)
+				end
+			end
+
+			create(class_type, ...)
+		end
+
+		-- 注册一个delete方法
+		obj.Delete = function(self)
+			local now_super = self._class_type 
+			while now_super ~= nil do	
+				if now_super.__delete then
+					now_super.__delete(self)
+				end
+				now_super = now_super.super
+			end
+		end
+
+		return obj
+	end
+
+	local vtbl = {}
+	_class[class_type] = vtbl
+ 
+	setmetatable(class_type, {
+		__newindex = function(t,k,v)
+			vtbl[k] = v
+		end
+		, 
+		--For call parent method
+		__index = function(t,k)
+            return vtbl[k]
+        end,
+	})
+ 
+	if super then
+		setmetatable(vtbl, {
+			__index = function(t,k)
+				local ret = _class[super][k]
+				--do not do accept, make hot update work right!
+				--vtbl[k] = ret
+				return ret
+			end
+		})
+	end
+ 
+	return class_type
+end
+
+--[[
+getset.lua
+A library for adding getters and setters to Lua tables.
+Copyright (c) 2011 Josh Tynjala
+Licensed under the MIT license.
+]]--
+
+local function throwReadOnlyError(table, key)
+	error("Cannot assign to read-only property '" .. key .. "' of " .. tostring(table) .. ".");
+end
+
+local function throwNotExtensibleError(table, key)
+	error("Cannot add property '" .. key .. "' because " .. tostring(table) .. " is not extensible.")
+end
+
+local function throwSealedError(table, key)
+	error("Cannot redefine property '" .. key .. "' because " .. tostring(table) .. " is sealed.")
+end
+
+local function getset__index(table, key)
+	local gs = table.__getset
+	
+	-- try to find a descriptor first
+	local descriptor = gs.descriptors[key]
+	if descriptor and descriptor.get then
+		return descriptor.get()
+	end
+	
+	-- if an old metatable exists, use that
+	local old__index = gs.old__index
+	if type(old__index) == "function" then
+		return old__index(table, key)
+    elseif type(old__index) == "table" then
+        return old__index[key]
+	end
+	
+	return nil
+end
+
+local function getset__newindex(table, key, value)
+	local gs = table.__getset
+	
+	-- check for a property first
+	local descriptor = gs.descriptors[key]
+	if descriptor then
+		if not descriptor.set then
+			throwReadOnlyError(table, key)
+		end
+        
+        local old__newindex = gs.old__newindex
+        if type(old__newindex) == "function" then
+            old__newindex(table, key, value)
+        elseif type(old__newindex) == "table" then
+            old__newindex[key] = value
+            old__newindex[key .. "ToString"] = function()
+                return key
+            end
+        end
+
+		descriptor.set(value)
+		return
+	end
+	
+	-- use the __newindex from the previous metatable next
+	-- if it exists, then isExtensible will be ignored
+	local old__newindex = gs.old__newindex
+	if type(old__newindex) == "function" then
+		old__newindex(table, key, value)
+		return
+    elseif type(old__newindex) == "table" then
+		old__newindex[key] = value
+		old__newindex[key .. "ToString"] = function()
+			return key
+		end
+		return
+    end
+	
+	-- finally, fall back to rawset()
+	if gs.isExtensible then
+		rawset(table, key, value)
+	else
+		throwNotExtensibleError(table, key)
+	end
+end
+
+-- initializes the table with __getset field
+local function initgetset(table)
+	if table.__getset then
+		return
+	end
+	
+	local mt = getmetatable(table)
+	local old__index
+	local old__newindex
+	if mt then
+		old__index = mt.__index
+		old__newindex = mt.__newindex
+	else
+		mt = {}
+		setmetatable(table, mt)
+	end
+	mt.__index = getset__index
+	mt.__newindex = getset__newindex
+	rawset(table, "__getset",
+	{
+		old__index = old__index,
+		old__newindex = old__newindex,
+		descriptors = {},
+		isExtensible = true,
+		isOldMetatableExtensible = true,
+		isSealed = false
+	})
+	return table
+end
+
+local getset = {}
+
+--- Defines a new property or modifies an existing property on a table. A getter
+-- and a setter may be defined in the descriptor, but both are optional.
+-- If a metatable already existed, and it had something similar to getters and
+-- setters defined using __index and __newindex, then those functions can be 
+-- accessed directly through table.__getset.old__index() and
+-- table.__getset.old__newindex(). This is useful if you want to override with
+-- defineProperty(), but still manipulate the original functions.
+-- @param table			The table on which to define or modify the property
+-- @param key			The name of the property to be defined or modified
+-- @param descriptor	The descriptor containing the getter and setter functions for the property being defined or modified
+-- @return 				The table and the old raw value of the field
+function getset.defineProperty(table, key, descriptor)
+	initgetset(table)
+	
+	local gs = table.__getset
+	
+	local oldDescriptor = gs.descriptors[key]
+	local oldValue = table[key]
+	
+	if gs.isSealed and (oldDescriptor or oldValue) then
+		throwSealedError(table, key)
+	elseif not gs.isExtensible and not oldDescriptor and not oldValue then
+		throwNotExtensibleError(table, key)
+	end
+	
+	gs.descriptors[key] = descriptor
+	
+	-- we need to set the raw value to nil so that the metatable works
+	rawset(table, key, nil)
+	
+	-- but we'll return the old raw value, just in case it is needed
+	return table, oldValue
+end
+
+--- Prevents new properties from being added to a table. Existing properties may
+-- be modified and configured.
+-- @param table		The table that should be made non-extensible
+-- @return			The table
+function getset.preventExtensions(table)
+	initgetset(table)
+	
+	local gs = table.__getset
+	gs.isExtensible = false
+	return table
+end
+
+--- Determines if a table is extensible. If a table isn't initialized with
+-- getset, this function returns true, since regular tables are always
+-- extensible. If a previous __newindex metatable method was defined before
+-- this table was initialized with getset, then isExtensible will be ignored
+-- completely.
+-- @param table		The table to be checked
+-- @return			true if extensible, false if non-extensible
+function getset.isExtensible(table)
+	local gs = table.__getset
+	if not gs then
+		return true
+	end
+	return gs.isExtensible
+end
+
+--- Prevents new properties from being added to a table, and existing properties 
+-- may be modified, but not configured.
+-- @param table		The table that should be sealed
+-- @return			The table
+function getset.seal(table)
+	initgetset(table)
+	local gs = table.__getset
+	gs.isExtensible = false
+	gs.isSealed = true
+	return table
+end
+
+--= Determines if a table is sealed. If a table isn't initialized with getset,
+-- this function returns false, since regular tables are never sealed.
+-- completely.
+-- @param table		The table to be checked
+-- @return			true if sealed, false if not sealed
+function getset.isSealed(table)
+	local gs = table.__getset
+	if not gs then
+		return false
+	end
+	return gs.isSealed
+end
+
+
+local T = BaseClass("T")
+
+function T:ctor()
+    self.a = 1
+    self.b = 2
+end
+
+local t = T.New()
+
+getset.defineProperty(t, "A",
+	{
+		get = function()
+			return t.a
+		end,
+		set = function(value)
+			t.a = value
+		end
+	}
+)
+
+local TT = BaseClass("TT", T)
+
+local tt = TT.New()
+
+getset.defineProperty(tt, "A",
+	{
+		get = function()
+			return tt.a
+		end,
+		set = function(value)
+			tt.a = value
+		end
+	}
+)
+
+local TTT = BaseClass("TTT", TT)
+
+local ttt = TTT.New()
+
+getset.defineProperty(ttt, "A",
+	{
+		get = function()
+			return ttt.a
+		end,
+		set = function(value)
+			ttt.a = value
+		end
+	}
+)
+
+print("/////////////////////////// => " .. t.a)
+print("/////////////////////////// => " .. t.b)
+t.A = 10
+print("/////////////////////////// => " .. t.a)
+print("/////////////////////////// => " .. t.b)
+print("/////////////////////////// => " .. t.A)
+print("/////////////////////////// => " .. t.aToString())
+print("/////////////////////////// => " .. t.bToString())
+print("/////////////////////////// => " .. t.AToString())
+
+print("/////////////////////////// => " .. tt.a)
+print("/////////////////////////// => " .. tt.b)
+tt.A = 100
+print("/////////////////////////// => " .. tt.a)
+print("/////////////////////////// => " .. tt.b)
+print("/////////////////////////// => " .. tt.A)
+print("/////////////////////////// => " .. tt.aToString())
+print("/////////////////////////// => " .. tt.bToString())
+print("/////////////////////////// => " .. tt.AToString())
+
+print("/////////////////////////// => " .. ttt.a)
+print("/////////////////////////// => " .. ttt.b)
+ttt.A = 1000
+print("/////////////////////////// => " .. ttt.a)
+print("/////////////////////////// => " .. ttt.b)
+print("/////////////////////////// => " .. ttt.A)
+print("/////////////////////////// => " .. ttt.aToString())
+print("/////////////////////////// => " .. ttt.bToString())
+print("/////////////////////////// => " .. ttt.AToString())
