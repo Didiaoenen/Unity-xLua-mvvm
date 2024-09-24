@@ -36,7 +36,7 @@ function try(block)
 		fresult = finally()
 	end
 	
-	if mstatus then
+	if status then
         if not fresult then
             if not cresult then
                 return mresult
@@ -48,7 +48,7 @@ function try(block)
         end
 	else
         if not catched then
-            error(mstatus)
+            error(status)
         end
 	end
 end

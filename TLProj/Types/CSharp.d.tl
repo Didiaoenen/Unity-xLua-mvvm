@@ -181,13 +181,15 @@ global record CS
     end
 
     -- 自定义类
-    record Simple
-        record MonoVariableArray
-            record VariableArray
-                Get: function(self: VariableArray, string): UnityEngine.Component
+    record Views
+        record Variables
+            record VariableArrayMono
+                record VariableArray
+                    Get: function(self: VariableArray, string): UnityEngine.Component
+                end
+    
+                variableArray: VariableArray
             end
-
-            variableArray: VariableArray
         end
     end
 

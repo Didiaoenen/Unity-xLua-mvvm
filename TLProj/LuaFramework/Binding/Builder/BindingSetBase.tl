@@ -11,6 +11,7 @@ function BindingSetBase:Build()
     ListExtention.Foreach(self.builders, function(_: number, v: BindingBuilderBaseType)
         v:Build()
     end)
+    self.builders = {}
 end
 
 function BindingSetBase:dtor()

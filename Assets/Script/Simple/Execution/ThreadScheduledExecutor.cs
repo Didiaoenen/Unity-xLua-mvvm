@@ -1,12 +1,40 @@
-using System;
-using System.Threading;
-using System.Collections.Generic;
-using Assembly_CSharp.Assets.Script.Simple.Asynchronous;
+/*
+ * MIT License
+ *
+ * Copyright (c) 2018 Clark Yang
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to do so, 
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all 
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+ * SOFTWARE.
+ */
 
-namespace Assembly_CSharp.Assets.Script.Simple.Execution
+using System;
+using System.Collections.Generic;
+using System.Threading;
+
+using Loxodon.Framework.Asynchronous;
+using Loxodon.Log;
+
+namespace Loxodon.Framework.Execution
 {
     public class ThreadScheduledExecutor : AbstractExecutor, IScheduledExecutor
     {
+        private static readonly ILog log = LogManager.GetLogger(typeof(ThreadScheduledExecutor));
+
         private IComparer<IDelayTask> comparer = new ComparerImpl<IDelayTask>();
         private List<IDelayTask> queue = new List<IDelayTask>();
         private object _lock = new object();
@@ -97,6 +125,8 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
 
         protected virtual void Check()
         {
+            if (!this.running)
+                throw new RejectedExecutionException("The ScheduledExecutor isn't started.");
         }
 
         public virtual Asynchronous.IAsyncResult Schedule(Action command, long delay)
@@ -189,6 +219,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     catch (Exception e)
                     {
                         this.SetException(e);
+#if DEBUG
+                        if (log.IsWarnEnabled)
+                            log.Warn(e);
+#endif
                     }
                 };
                 this.executor.Add(this);
@@ -217,6 +251,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
                 catch (Exception e)
                 {
+#if DEBUG
+                    if (log.IsWarnEnabled)
+                        log.Warn(e);
+#endif
                 }
             }
         }
@@ -254,6 +292,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     catch (Exception e)
                     {
                         this.SetException(e);
+#if DEBUG
+                        if (log.IsWarnEnabled)
+                            log.Warn(e);
+#endif
                     }
                 };
                 this.executor.Add(this);
@@ -282,6 +324,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
                 catch (Exception e)
                 {
+#if DEBUG
+                    if (log.IsWarnEnabled)
+                        log.Warn(e);
+#endif
                 }
             }
         }
@@ -322,6 +368,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     }
                     catch (Exception e)
                     {
+#if DEBUG
+                        if (log.IsWarnEnabled)
+                            log.Warn(e);
+#endif
                     }
                 };
                 this.executor.Add(this);
@@ -348,6 +398,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
                 catch (Exception e)
                 {
+#if DEBUG
+                    if (log.IsWarnEnabled)
+                        log.Warn(e);
+#endif
                 }
             }
         }
@@ -383,6 +437,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     }
                     catch (Exception e)
                     {
+#if DEBUG
+                        if (log.IsWarnEnabled)
+                            log.Warn(e);
+#endif
                     }
                     finally
                     {
@@ -421,6 +479,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
                 catch (Exception e)
                 {
+#if DEBUG
+                    if (log.IsWarnEnabled)
+                        log.Warn(e);
+#endif
                 }
             }
         }

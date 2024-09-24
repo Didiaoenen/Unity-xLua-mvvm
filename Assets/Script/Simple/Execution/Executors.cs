@@ -1,24 +1,50 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2018 Clark Yang
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to do so, 
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all 
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+ * SOFTWARE.
+ */
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 #if NETFX_CORE || !NET_LEGACY
 using System.Threading.Tasks;
 #endif
 using System.Threading;
 
-using UnityEngine;
-using Assembly_CSharp.Assets.Script.Simple.Asynchronous;
+using Loxodon.Log;
+using Loxodon.Framework.Asynchronous;
 
-namespace Assembly_CSharp.Assets.Script.Simple.Execution
+namespace Loxodon.Framework.Execution
 {
     public class Executors
     {
+        private static readonly ILog log = LogManager.GetLogger(typeof(Executors));
+
         private static readonly object syncLock = new object();
         private static bool disposed = false;
         private static MainThreadExecutor executor;
         private static SynchronizationContext context;
-
 #if NETFX_CORE || !NET_LEGACY
         private static int mainThreadId;
 #else
@@ -99,6 +125,8 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
                 catch (Exception e)
                 {
+                    if (log.IsErrorEnabled)
+                        log.ErrorFormat("Start Executors failure.Exception:{0}", e);
                 }
             }
         }
@@ -168,6 +196,19 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     return;
                 }
 
+                //executor.Execute(() =>
+                //{
+                //    try
+                //    {
+                //        action();
+                //        promise.SetResult();
+                //    }
+                //    catch (Exception e)
+                //    {
+                //        promise.SetException(e);
+                //    }
+                //});
+
                 context.Post((state) =>
                 {
                     try
@@ -199,6 +240,18 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     return;
                 }
 
+                //executor.Execute(() =>
+                //{
+                //    try
+                //    {
+                //        promise.SetResult(func());
+                //    }
+                //    catch (Exception e)
+                //    {
+                //        promise.SetException(e);
+                //    }
+                //});
+
                 context.Post((state) =>
                 {
                     try
@@ -227,7 +280,7 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
 
         protected static InterceptableEnumerator WrapEnumerator(IEnumerator routine, IPromise promise)
         {
-            InterceptableEnumerator enumerator = routine is InterceptableEnumerator ? (InterceptableEnumerator)routine : new InterceptableEnumerator(routine);
+            InterceptableEnumerator enumerator = routine is InterceptableEnumerator ? (InterceptableEnumerator)routine : InterceptableEnumerator.Create(routine);
             if (promise != null)
             {
                 enumerator.RegisterConditionBlock(() => !(promise.IsCancellationRequested));
@@ -235,6 +288,9 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 {
                     if (promise != null)
                         promise.SetException(e);
+
+                    if (log.IsErrorEnabled)
+                        log.Error(e);
                 });
                 enumerator.RegisterFinallyBlock(() =>
                 {
@@ -572,12 +628,15 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
 
         class MainThreadExecutor : MonoBehaviour
         {
+            private static readonly ILog log = LogManager.GetLogger(typeof(MainThreadExecutor));
+
             public bool useFixedUpdate = false;
             private List<object> pendingQueue = new List<object>();
             private List<object> stopingQueue = new List<object>();
 
             private List<object> runningQueue = new List<object>();
             private List<object> stopingTempQueue = new List<object>();
+
 
             void OnApplicationQuit()
             {
@@ -647,6 +706,8 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     }
                     catch (Exception e)
                     {
+                        if (log.IsWarnEnabled)
+                            log.WarnFormat("Task stop exception! error:{0}", e);
                     }
                 }
                 stopingTempQueue.Clear();
@@ -683,9 +744,15 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                     }
                     catch (Exception e)
                     {
+                        if (log.IsWarnEnabled)
+                            log.WarnFormat("Task execution exception! error:{0}", e);
                     }
                 }
                 runningQueue.Clear();
+
+                float time = Time.realtimeSinceStartup - startTime;
+                if (time > 0.15f)
+                    log.DebugFormat("The running time of tasks in the main thread executor is too long.these tasks take {0} milliseconds.", (int)(time * 1000));
             }
 
             public void Execute(Action action)
@@ -710,6 +777,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
             }
 
+            /// <summary>
+            /// Stop Coroutine
+            /// </summary>
+            /// <param name="routine"></param>
             public void Stop(IEnumerator routine)
             {
                 if (routine == null)
@@ -730,6 +801,10 @@ namespace Assembly_CSharp.Assets.Script.Simple.Execution
                 }
             }
 
+            /// <summary>
+            /// Stop Coroutine
+            /// </summary>
+            /// <param name="routine"></param>
             public void Stop(Coroutine routine)
             {
                 if (routine == null)

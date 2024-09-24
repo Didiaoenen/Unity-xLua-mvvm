@@ -10,10 +10,10 @@ end
 function BindingBuilder:For(targetName: string, updateTrigger: string): BindingBuilderType
     self.description.TargetName = targetName
     self.description.UpdateTrigger = updateTrigger
-    local target = classget(self.target, self.description.TargetName)
-    if "function" == type(target) then
-        self:OneWayToSource()
-    end
+    -- local target = classget(self.target, self.description.TargetName)
+    -- if "function" == type(target) then
+    --     self:OneWayToSource()
+    -- end
     return self
 end
 
@@ -22,30 +22,49 @@ function BindingBuilder:To(path: string): BindingBuilder
     return self    
 end
 
+-- function BindingBuilder:ToExpression(expression: string, ...: any): BindingBuilder
+--     return self
+-- end
+
+-- function BindingBuilder:ToStatic(path: string): BindingBuilder
+--     return self
+-- end
+
+-- function BindingBuilder:ToValue(value: string): BindingBuilder
+--     return self
+-- end
+
+function BindingBuilder:TwoWay(): BindingBuilder
+    self:SetMode(BindingMode.TwoWay)
+    return self
+end
+
 function BindingBuilder:OneWay(): BindingBuilder
     self:SetMode(BindingMode.OneWay)
-    return self    
+    return self
 end
 
 function BindingBuilder:OneWayToSource(): BindingBuilder
     self:SetMode(BindingMode.OneWayToSource)
-    return self    
-end
-
-function BindingBuilder:TwoWay(): BindingBuilder
-    self:SetMode(BindingMode.TwoWay)
-    return self    
+    return self
 end
 
 function BindingBuilder:OneTime(): BindingBuilder
     self:SetMode(BindingMode.OneTime)
-    return self    
+    return self
 end
 
 function BindingBuilder:CommandParameter(...: any): BindingBuilder
     self:SetCommandParameter(...)
     return self    
 end
+
+-- function BindingBuilder:SetCommandParameter(value: string)
+-- end
+
+-- function BindingBuilder:WithConversion(value: string): BindingBuilder
+--     return self
+-- end
 
 function BindingBuilder:dtor()
 end

@@ -1,0 +1,16 @@
+{
+    "name": "Simple",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e936e5c175e6e9441b7564635fef374b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

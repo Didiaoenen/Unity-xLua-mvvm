@@ -1,11 +1,11 @@
 CS = CS or {}
 
 local CSObject = {
-    Simple = CS.Assembly_CSharp.Assets.Script.Simple,
-    Execution = CS.Assembly_CSharp.Assets.Script.Simple.Execution,
-    Asynchronous = CS.Assembly_CSharp.Assets.Script.Simple.Asynchronous,
+    Views = CS.Loxodon.Framework.Views,
+    Execution = CS.Loxodon.Framework.Execution,
+    Asynchronous = CS.Loxodon.Framework.Asynchronous,
 }
-rawset(CS, "Simple", CSObject.Simple)
+rawset(CS, "Views", CSObject.Views)
 rawset(CS, "Execution", CSObject.Execution)
 rawset(CS, "Asynchronous", CSObject.Asynchronous)
 

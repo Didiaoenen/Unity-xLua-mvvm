@@ -1761,7 +1761,7 @@ global record ViewBaseType
 
     name: string
     parent: TransformExtType
-    variables: MonoVariableArrayExtType
+    variables: VariableArrayMonoExtType
     components: {ComponentExtType}
     gameObjects: {GameObjectExtType}
 
@@ -2618,7 +2618,7 @@ global record AsyncResultExtType
     WaitForDone: function(self: AsyncResultExtType): CS.System.Object
 end
 
-global record MonoVariableArrayExtType
+global record VariableArrayMonoExtType
     handler: CS.UnityEngine.Component
 
     CSObject: CS.UnityEngine.Component
@@ -2629,6 +2629,6 @@ global record MonoVariableArrayExtType
     ctor: function
     dtor: function
 
-    Get: function(self: MonoVariableArrayExtType, string): CS.UnityEngine.Component
+    Get: function(self: VariableArrayMonoExtType, string): CS.UnityEngine.Component
 end
 ------------------------------------------------------------------------------

@@ -3,8 +3,8 @@ return {
     build_dir = "OOP/../../Assets/Script/Test/LuaScripts",
     exclude = {
         "CS\\*.tl",
-        "Debug\\*.tl",
         "OOP\\*.tl",
+        "Debug\\*.tl",
         "Tools\\*.tl",
         "xlua\\*.tl",
     },

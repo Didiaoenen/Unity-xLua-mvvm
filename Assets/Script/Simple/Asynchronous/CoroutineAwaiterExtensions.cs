@@ -1,10 +1,35 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2018 Clark Yang
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to do so, 
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all 
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+ * SOFTWARE.
+ */
+
+using Loxodon.Framework.Execution;
+using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Collections;
 using Object = UnityEngine.Object;
-using Assembly_CSharp.Assets.Script.Simple.Execution;
 
-namespace Assembly_CSharp.Assets.Script.Simple.Asynchronous
+namespace Loxodon.Framework.Asynchronous
 {
     public static class CoroutineAwaiterExtensions
     {
@@ -24,6 +49,23 @@ namespace Assembly_CSharp.Assets.Script.Simple.Asynchronous
             Executors.RunOnCoroutineNoReturn(enumerator);
             return awaiter;
         }
+
+        //private static CoroutineAwaiter<TResult> RunOnCoroutine<TResult>(IEnumerator routine, Func<TResult> getter)
+        //{
+        //    CoroutineAwaiter<TResult> awaiter = new CoroutineAwaiter<TResult>();
+        //    InterceptableEnumerator enumerator = routine is InterceptableEnumerator ? (InterceptableEnumerator)routine : InterceptableEnumerator.Create(routine);
+        //    enumerator.RegisterCatchBlock(e =>
+        //    {
+        //        awaiter.SetResult(default(TResult), e);
+        //    });
+        //    enumerator.RegisterFinallyBlock(() =>
+        //    {
+        //        if (!awaiter.IsCompleted)
+        //            awaiter.SetResult(getter(), null);
+        //    });
+        //    Executors.RunOnCoroutineNoReturn(enumerator);
+        //    return awaiter;
+        //}
 
         private static IEnumerator DoYieldInstruction(YieldInstruction instruction, CoroutineAwaiter awaiter)
         {

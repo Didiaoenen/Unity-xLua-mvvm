@@ -16,7 +16,7 @@ local GameObjectExt = require("LuaFramework.Views.Components.GameObjectExt")
 local CanvasGroupExt = require("LuaFramework.Views.Components.CanvasGroupExt")
 local RectTransformExt = require("LuaFramework.Views.Components.RectTransformExt")
 local GraphicRaycasterExt = require("LuaFramework.Views.Components.GraphicRaycasterExt")
-local MonoVariableArrayExt = require("LuaFramework.Views.Components.MonoVariableArrayExt")
+local VariableArrayMonoExt = require("LuaFramework.Views.Components.VariableArrayMonoExt")
 
 local ViewBase = class("ViewBase", ViewGroup) as ViewBaseType
 
@@ -295,7 +295,7 @@ function ViewBase:OnCreate()
     
     -- self.viewModel.Parent = self.parent
 
-    self.variables = self:GetComponent(MonoVariableArrayExt) as MonoVariableArrayExtType
+    self.variables = self:GetComponent(VariableArrayMonoExt) as VariableArrayMonoExtType
 
     local bindingSet = self.bindingSet as BindingSetType
 
