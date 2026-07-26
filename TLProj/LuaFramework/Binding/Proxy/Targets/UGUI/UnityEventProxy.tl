@@ -4,7 +4,6 @@ local UnityEventProxy = class("UnityEventProxy", UnityEventProxyBase) as UnityEv
 
 function UnityEventProxy:ctor(target: LuaObject, unityEvent: string)
     UnityEventProxyBase.ctor(self, target, unityEvent)
-    self:BindEvent()
 end
 
 function UnityEventProxy:BindEvent()
@@ -31,16 +30,10 @@ function UnityEventProxy:UnbindEvent()
     end
 end
 
-function UnityEventProxy:IsValidInvoker(invoker: IProxyInvokerType)
-    assert({invoker}, "")
-end
-
 function UnityEventProxy:OnEvent(...: any)
     if self.invoker then
         self.invoker:Invoke(...)
-    end
-
-    if self.command then
+    elseif self.command then
         self.command:Execute(...)
     end
 end

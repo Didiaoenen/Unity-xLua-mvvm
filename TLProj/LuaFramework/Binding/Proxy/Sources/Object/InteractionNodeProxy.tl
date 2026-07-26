@@ -1,6 +1,6 @@
 local SourceProxyBase = require("LuaFramework.Binding.Proxy.Sources.SourceProxyBase")
 local IModifiable = require("LuaFramework.Binding.Proxy.IModifiable")
-local TableOprationMode = require("LuaFramework.Binding.TableOprationMode")
+local TableOperationMode = require("LuaFramework.Binding.TableOperationMode")
 
 local InteractionNodeProxy = class("InteractionNodeProxy", SourceProxyBase, IModifiable) as InteractionNodeProxyType
 
@@ -14,14 +14,14 @@ end
 function InteractionNodeProxy:BindEvent()
     local request = classget(self.source, self.request) as InteractionRequestType
     if request then
-        request.Raised = {opt = TableOprationMode.Add, save = self.request, this = self, callback = self.OnRaised}
+        request.Raised = {opt = TableOperationMode.Add, save = self.request, this = self, callback = self.OnRaised}
     end
 end
 
 function InteractionNodeProxy:UnbindEvent()
     local request = classget(self.source, self.request) as InteractionRequestType
     if request then
-        request.Raised = {opt = TableOprationMode.Remove, save = self.request}
+        request.Raised = {opt = TableOperationMode.Remove, save = self.request}
     end
 end
 

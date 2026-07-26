@@ -1,4 +1,4 @@
-local ListExtention = require("LuaFramework.Common.ListExtention")
+local ListExtension = require("LuaFramework.Common.ListExtension")
 
 local BindingSetBase = class("BindingSetBase") as BindingSetBaseType
 
@@ -8,7 +8,7 @@ function BindingSetBase:ctor(context: BindingContextType)
 end
 
 function BindingSetBase:Build()
-    ListExtention.Foreach(self.builders, function(_: number, v: BindingBuilderBaseType)
+    ListExtension.Foreach(self.builders, function(_: number, v: BindingBuilderBaseType)
         v:Build()
     end)
     self.builders = {}

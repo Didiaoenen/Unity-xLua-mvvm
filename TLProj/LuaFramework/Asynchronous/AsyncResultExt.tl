@@ -1,23 +1,23 @@
 local AsyncResultExt = class("AsyncResultExt") as AsyncResultExtType
 
 function AsyncResultExt.get:IsDone(): boolean
-    return self.csharp.done
+    return self.csharp.IsDone
 end
 
 function AsyncResultExt.get:Result(): CS.System.Object
-    return self.csharp.result
+    return self.csharp.Result
 end
 
 function AsyncResultExt.get:IsCancellationRequested(): boolean
-    return self.csharp.cancellationRequested
+    return self.csharp.IsCancellationRequested
 end
 
 function AsyncResultExt.get:IsCancelled(): boolean
-    return self.csharp.cancelled
+    return self.csharp.IsCancelled
 end
 
 function AsyncResultExt:ctor(cancelable: boolean)
-    self.csharp = CS.Asynchronous.AsyncResult(cancelable or false)
+    self.csharp = CS.Loxodon.Framework.Asynchronous.AsyncResult(cancelable or false)
 end
 
 function AsyncResultExt:SetException(errorMsg: string)

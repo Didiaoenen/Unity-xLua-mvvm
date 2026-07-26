@@ -5,9 +5,14 @@ global record CS
         record Type
             IsAssignableFrom: function(self: Type, Type): boolean
         end
-        
+
         record Object
             GetType: function(self: Object): Type
+        end
+
+        record Collections
+            record IEnumerator
+            end
         end
     end
 
@@ -19,6 +24,7 @@ global record CS
             name: string
             GetType: function(self: UnityEngine.Object): System.Type
             Instantiate: function(self: UnityEngine.Object): UnityEngine.Object
+            Instantiate: function(self: UnityEngine.Object, parent: UnityEngine.Transform, worldSpace: boolean): UnityEngine.Object
             Destroy: function(self: UnityEngine.Object)
         end
     
@@ -40,6 +46,10 @@ global record CS
             metamethod __call: function(self: WaitForSeconds, ...: any): WaitForSeconds
         end
         
+        -- Coroutine
+        record Coroutine
+        end
+
         -- Quaternion
         record Quaternion
             identity: Quaternion
@@ -181,57 +191,79 @@ global record CS
     end
 
     -- 自定义类
-    record Views
-        record Variables
-            record VariableArrayMono
-                record VariableArray
-                    Get: function(self: VariableArray, string): UnityEngine.Component
+    record Loxodon
+        record Framework
+            record Views
+                record Variables
+                    record VariableArrayMono
+                        record VariableArray
+                            Get: function(self: VariableArray, string): UnityEngine.Component
+                        end
+            
+                        variableArray: VariableArray
+                    end
                 end
-    
-                variableArray: VariableArray
+            end
+
+            record Execution
+
+                record Executors
+                    WaitWhile: function(function): System.Object
+                    RunOnCoroutine: function(CS.System.Collections.IEnumerator): CoroutineResult
+                    RunOnCoroutineReturn: function(CS.System.Collections.IEnumerator): CS.UnityEngine.Coroutine
+                    RunOnCoroutineNoReturn: function(CS.System.Collections.IEnumerator)
+                    RunOnMainThread: function(function)
+                end
+
+                record CoroutineResult
+
+                    Cancel: function(self: CoroutineResult): boolean
+
+                    WaitForDone: function(self: CoroutineResult): System.Object
+
+                end
+
+                record InterceptableEnumerator
+                    metamethod __call: function(self: InterceptableEnumerator, CS.System.Collections.IEnumerator): InterceptableEnumerator
+                end
+            end
+
+            record Asynchronous
+                record AsyncResult
+                    IsDone: boolean
+                    Result: System.Object
+                    IsCancellationRequested: boolean
+                    IsCancelled: boolean
+
+                    SetResult: function(self: AsyncResult, System.Object)
+                    SetCancelled: function(self: AsyncResult)
+                    Cancel: function(self: AsyncResult): boolean
+                    Callbackable: function(self: AsyncResult): System.Object
+                    Synchronized: function(self: AsyncResult): System.Object
+                    WaitForDone: function(self: AsyncResult): System.Object
+                
+                    new: function(...: any): AsyncResult
+                
+                    metamethod __call: function(self: AsyncResult, ...: any): AsyncResult
+                end
+
+                record ProgressResult_1_Single
+                    Result: System.Object
+                    Progress: number
+                
+                    Callbackable: function(self: ProgressResult_1_Single): System.Object
+                    UpdateProgress: function(self: ProgressResult_1_Single, number)
+                    SetResult: function(self: ProgressResult_1_Single, System.Object)
+                    WaitForDone: function(self: ProgressResult_1_Single): System.Object
+                    Cancel: function(ProgressResult_1_Single): boolean
+
+                    metamethod __call: function(self: ProgressResult_1_Single, ...: any): ProgressResult_1_Single
+                end
+
+                ["ProgressResult`1[System.Single]"]: ProgressResult_1_Single
             end
         end
+
     end
 
-    record Execution
-        record Executors
-            WaitWhile: function(function): System.Object
-            RunOnMainThread: function(function)
-            RunOnCoroutine: function(function): Asynchronous.AsyncResult
-            RunOnCoroutineNoReturn: function(function)
-        end
-    end
-
-    record Asynchronous
-        record AsyncResult
-            done: boolean
-            result: System.Object
-            cancellationRequested: boolean
-            cancelled: boolean
-            SetResult: function(self: AsyncResult, System.Object)
-            SetCancelled: function(self: AsyncResult)
-            Cancel: function(self: AsyncResult): boolean
-            Callbackable: function(self: AsyncResult): System.Object
-            Synchronized: function(self: AsyncResult): System.Object
-            WaitForDone: function(self: AsyncResult): System.Object
-        
-            new: function(...: any): AsyncResult
-        
-            metamethod __call: function(self: AsyncResult, ...: any): AsyncResult
-        end
-
-        record ProgressResult_1_Single
-            Result: System.Object
-            Progress: number
-        
-            Callbackable: function(self: ProgressResult_1_Single): System.Object
-            UpdateProgress: function(self: ProgressResult_1_Single, number)
-            SetResult: function(self: ProgressResult_1_Single, System.Object)
-            WaitForDone: function(self: ProgressResult_1_Single): System.Object
-        
-            metamethod __call: function(self: ProgressResult_1_Single, ...: any): ProgressResult_1_Single
-        end
-
-        ["ProgressResult`1[System.Single]"]: ProgressResult_1_Single
-    end
 end

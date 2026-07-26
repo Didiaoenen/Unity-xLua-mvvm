@@ -25,8 +25,8 @@ function StandardBinder:ctor()
     self.targetProxyFactory = targetProxyFactory as TargetProxyBaseType
 end
 
-function StandardBinder:Bind(source: LuaObject, target: LuaObject, bindingDecription: BindingDescriptionType): BindingType
-    return Binding.new(source, target, bindingDecription, self.sourceProxyFactory, self.targetProxyFactory)
+function StandardBinder:Bind(source: LuaObject, target: LuaObject, bindingDescription: BindingDescriptionType): BindingType
+    return Binding.new(source, target, bindingDescription, self.sourceProxyFactory, self.targetProxyFactory)
 end
 
 function StandardBinder:__singleton(): StandardBinder

@@ -140,7 +140,6 @@ function ProxyEntry.set:Proxy(value: BindingProxyBaseType)
         return
     end
 
-
     if nil ~= self.handler then
         local bNotifiable = (self.proxy as LuaObject).is(IObtainable)
         if bNotifiable then

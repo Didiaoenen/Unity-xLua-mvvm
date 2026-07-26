@@ -20,7 +20,7 @@ function TargetProxyBase:ctor(target: LuaObject)
 end
 
 function TargetProxyBase:IsAlive(target: LuaObject): boolean
-    assert({target})
+    assert({target}, "")
     return true
 end
 

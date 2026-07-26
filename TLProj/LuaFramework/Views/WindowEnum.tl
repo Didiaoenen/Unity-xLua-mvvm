@@ -37,9 +37,10 @@ WindowEnum.ViewType = {
 }
 
 WindowEnum.ActionType = {
-    None        = 1,
-    Hide        = 2,
-    Dismiss     = 3,
+    NONE         = 1,
+    HIDE         = 2,
+    DISMISS      = 3,
+    OUT_OFF_SCREEN = 4,
 }
 
 return WindowEnum

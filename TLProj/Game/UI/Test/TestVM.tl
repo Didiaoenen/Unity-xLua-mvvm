@@ -2,11 +2,11 @@ local ViewModelBase = require("LuaFramework.Views.ViewModelBase")
 local SimpleCommand = require("LuaFramework.Commands.SimpleCommand")
 local InteractionRequest = require("LuaFramework.Interactivity.InteractionRequest")
 
-local BindText = require("LuaFramework.Views.BindComponents.BindText")
-local BindButton = require("LuaFramework.Views.BindComponents.BindButton")
-local BindInputField = require("LuaFramework.Views.BindComponents.BindInputField")
-local BindGameObject = require("LuaFramework.Views.BindComponents.BindGameObject")
-local BindToggle = require("LuaFramework.Views.BindComponents.BindToggle")
+local TextBind = require("LuaFramework.Views.ComponentBinds.TextBind")
+local ButtonBind = require("LuaFramework.Views.ComponentBinds.ButtonBind")
+local InputFieldBind = require("LuaFramework.Views.ComponentBinds.InputFieldBind")
+local GameObjectBind = require("LuaFramework.Views.ComponentBinds.GameObjectBind")
+local ToggleBind = require("LuaFramework.Views.ComponentBinds.ToggleBind")
 
 local TestVM = class("TestVM", ViewModelBase) as TestVMType
 
@@ -63,13 +63,13 @@ function TestVM:ctor(window: WindowFactoryType)
 
     self.window = window
 
-    self.text = BindText.new("text")
-    self.text1 = BindText.new("text1")
-    self.button = BindButton.new("button")
-    self.inputField = BindInputField.new("inputField")
-    self.gameObject = BindGameObject.new("gameObject")
-    self.toggle_1 = BindToggle.new("toggle_1")
-    self.toggle_2 = BindToggle.new("toggle_2")
+    self.text = TextBind.new("text")
+    self.text1 = TextBind.new("text1")
+    self.button = ButtonBind.new("button")
+    self.inputField = InputFieldBind.new("inputField")
+    self.gameObject = GameObjectBind.new("gameObject")
+    self.toggle_1 = ToggleBind.new("toggle_1")
+    self.toggle_2 = ToggleBind.new("toggle_2")
 
     --
     self.test = ""

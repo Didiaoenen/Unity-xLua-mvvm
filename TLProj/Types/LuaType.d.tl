@@ -35,9 +35,10 @@ global record ViewStateType
 end
 
 global record ActionTypeType
-    None: number
-    Hide: number
-    Dismiss: number
+    NONE: number
+    HIDE: number
+    DISMISS: number
+    OUT_OFF_SCREEN: number
 end
 
 global record WindowEnumType
@@ -55,7 +56,7 @@ global record BindingModeType
     OneWayToSource: number  
 end
 
-global record TableOprationModelType
+global record TableOperationModelType
     Add: number         
     Remove: number          
 end
@@ -177,6 +178,8 @@ global record BindingSetType
 
     Bind: function(self: BindingSetType): BindingBuilderType
     BindByTarget: function(self: BindingSetType, LuaObject): BindingBuilderType
+
+    Build: function(self: BindingSetType)
 end
 
 global record BindingSetBaseType
@@ -537,7 +540,6 @@ global record UnityEventProxyType
 
     BindEvent: function(self: UnityEventProxyType)
     UnbindEvent: function(self: UnityEventProxyType)
-    IsValidInvoker: function(self: UnityEventProxyType, IProxyInvokerType)
     OnEvent: function(self: UnityEventProxyType, ...: any)
 end
 
@@ -737,7 +739,7 @@ global record TargetProxyFactoryType
     Unregister: function(self: TargetProxyFactoryType, ITargetProxyFactoryType)
 end
 
-global record ValueTargetProxyBaseType
+global record TargetValueProxyBaseType
 
     record opt
         subScribed: boolean
@@ -759,13 +761,13 @@ global record ValueTargetProxyBaseType
     ctor: function
     dtor: function
 
-    Subscribe: function(self: ValueTargetProxyBaseType)
-    Unsubscribe: function(self: ValueTargetProxyBaseType)
-    DoSubscribeForValueChange: function(self: ValueTargetProxyBaseType, LuaObject)
-    DoUnsubscribeForValueChange: function(self: ValueTargetProxyBaseType, LuaObject)
-    RaiseValueChanged: function(self: ValueTargetProxyBaseType)
-    GetValue: function(self: ValueTargetProxyBaseType): any
-    SetValue: function(self: ValueTargetProxyBaseType, any)
+    Subscribe: function(self: TargetValueProxyBaseType)
+    Unsubscribe: function(self: TargetValueProxyBaseType)
+    DoSubscribeForValueChange: function(self: TargetValueProxyBaseType, LuaObject)
+    DoUnsubscribeForValueChange: function(self: TargetValueProxyBaseType, LuaObject)
+    RaiseValueChanged: function(self: TargetValueProxyBaseType)
+    GetValue: function(self: TargetValueProxyBaseType): any
+    SetValue: function(self: TargetValueProxyBaseType, any)
 end
 
 global record IBindingProxyType
@@ -995,6 +997,7 @@ global record INotifyPropertyChangedType
     PropertyChanged: OptHandlerType
 
     ctor: function
+    dtor: function
 end
 
 global record PropertyChangedEventArgsType
@@ -1072,7 +1075,7 @@ global record SimpleCommandType
         enabled: boolean
         Enabled: function
     
-        RaiseCanExecuteChanged: function(self: set)
+        RaiseExecuteChanged: function(self: set)
     end
 
     record opt
@@ -1201,13 +1204,22 @@ global record ObservableObjectType
 end
 
 global record DefaultUIViewLocatorType
-    LoadAsync: function(string, CS.System.Type): CS.Asynchronous.ProgressResult_1_Single
-    DoLoad: function(CS.Asynchronous.ProgressResult_1_Single, string, CS.System.Type)
+
+    Instance: DefaultUIViewLocatorType
+
+    __singleton: function(DefaultUIViewLocatorType): DefaultUIViewLocatorType
+
+    new: function(...: any): DefaultUIViewLocatorType
+    ctor: function
+    dtor: function
+
+    LoadAsync: function(DefaultUIViewLocatorType, string, CS.System.Type): CS.Loxodon.Framework.Asynchronous.ProgressResult_1_Single
+    DoLoad: function(DefaultUIViewLocatorType, CS.Loxodon.Framework.Asynchronous.ProgressResult_1_Single, string, CS.System.Type)
 end
 
 global record ViewGroupType
     views: {ViewBaseType}
-    window: WindowFactoryType
+    window: WindowBaseType
 
     ctor: function
     dtor: function
@@ -1220,6 +1232,28 @@ global record ViewGroupType
     GetView: function(self: ViewGroupType, name: string): ViewBaseType
     AddView: function(self: ViewGroupType, name: string, parent: TransformExtType, ...: any): ViewBaseType
     RemoveView: function(self: ViewGroupType, name: string): ViewBaseType
+end
+
+global record IViewGroupType
+
+    record get
+        views: {ViewBaseType}
+        Views: function
+    end
+
+    views: {ViewBaseType}
+    window: WindowBaseType
+
+    ctor: function
+    dtor: function
+
+    Show: function(self: IViewGroupType)
+    Hide: function(self: IViewGroupType)
+    Dismiss: function(self: IViewGroupType)
+
+    GetView: function(self: IViewGroupType, name: string): ViewBaseType
+    AddView: function(self: IViewGroupType, name: string, parent: TransformExtType, ...: any): ViewBaseType
+    RemoveView: function(self: IViewGroupType, name: string): ViewBaseType
 end
 
 global record LayerConfigType
@@ -1261,7 +1295,7 @@ end
 
 global record TransitionType
     record get
-        window: WindowFactoryType
+        window: WindowBaseType
         Window: function
     
         done: boolean
@@ -1275,7 +1309,7 @@ global record TransitionType
     end
     
     record set
-        window: WindowFactoryType
+        window: WindowBaseType
         Window: function
 
         done: boolean
@@ -1288,7 +1322,7 @@ global record TransitionType
         OverlayPolicy: function
     end
     
-    window: WindowFactoryType
+    window: WindowBaseType
     done: boolean
     animationDisabled: boolean
     overlayPolicy: function
@@ -1335,7 +1369,7 @@ global record TransitionExecutorType
         transitions: {TransitionType}
     end
 
-    taskResult: CS.Asynchronous.AsyncResult
+    taskResult: CS.Loxodon.Framework.Execution.CoroutineResult
     running: boolean
     transitions: {TransitionType}
 
@@ -1344,7 +1378,7 @@ global record TransitionExecutorType
     dtor: function
 
     Execute: function(self: TransitionExecutorType, TransitionType)
-    ShutDone: function(self: TransitionExecutorType)
+    ShutDown: function(self: TransitionExecutorType)
     DoTask: function(self: TransitionExecutorType)
 end
 
@@ -1434,13 +1468,13 @@ global record ViewModelBaseType
     SortingOrder: number
     alpha: number
 
-    window: WindowFactoryType
+    window: WindowBaseType
     messenger: MessengerType
 
-    bindCanvas: BindCanvasType
-    bindGameObject: BindGameObjectType
-    bindCanvasGroup: BindCanvasGroupType
-    bindRectTransform: BindRectTransformType
+    bindCanvas: CanvasBindType
+    bindGameObject: GameObjectBindType
+    bindCanvasGroup: CanvasGroupBindType
+    bindRectTransform: RectTransformBindType
 
     new: function(...: any): ViewModelBaseType
     ctor: function
@@ -1452,37 +1486,247 @@ global record ViewModelBaseType
 end
 
 global record WindowBaseType
-    record get
-        viewStack: {ViewBaseType}
-        Current: function
+
+    record opt
+        activatedChanged: {string: OptHandlerType}
+        ActivatedChanged: function
+
+        visibilityChanged: {string: OptHandlerType}
+        VisibilityChanged: function
+    
+        onDismissed: {string: OptHandlerType}
+        OnDismissed: function
+
+        stateChanged: {string: OptHandlerType}
+        StateChanged: function
     end
 
-    Current: ViewBaseType
+    record get
+        messenger: MessengerType
+        Messenger: function
+        
+        activatedChanged: {EventHandlerType}
+        ActivatedChanged: function
+    
+        visibilityChanged: {EventHandlerType}
+        VisibilityChanged: function
+    
+        onDismissed: {EventHandlerType}
+        OnDismissed: function
+    
+        stateChanged: {EventHandlerType}
+        StateChanged: function
 
-    subView: {ViewBaseType}
-    viewStack: {ViewBaseType}
+        windowManager: WindowManagerType
+        WindowManager: function
+    
+        created: boolean
+        Created: function
+    
+        dismissed: boolean
+        Dismissed: function
+    
+        activated: boolean
+        Activated: function
+    
+        state: number
+        State: function
+    
+        actionType: number
+        ActionType: function
+
+        windowType: number
+        WindowType: function
+    
+        activationAnimation: UIAnimationType
+        ActivationAnimation: function
+
+        passivationAnimation: UIAnimationType
+        PassivationAnimation: function
+
+        enterAnimation: UIAnimationType
+        EnterAnimation: function
+    
+        exitAnimation: UIAnimationType
+        ExitAnimation: function
+    
+        Name: function
+    
+        parent: TransformExtType
+        Parent: function
+    
+        gameObject: GameObjectExtType
+        GameObject: function
+    
+        transform: TransformExtType
+        Transform: function
+    
+        rectTransform: RectTransformExtType
+        RectTransform: function
+
+        visibility: boolean
+        Visibility: function
+
+        viewModel: ViewModelBaseType
+    end
+    
+    record set
+        activatedChanged: {EventHandlerType}
+        ActivatedChanged: function
+    
+        visibilityChanged: {EventHandlerType}
+        VisibilityChanged: function
+    
+        onDismissed: {EventHandlerType}
+        OnDismissed: function
+    
+        stateChanged: {EventHandlerType}
+        StateChanged: function
+    
+        windowManager: WindowManagerType
+        WindowManager: function
+
+        activated: boolean
+        Activated: function
+    
+        state: number
+        State: function
+    
+        activationAnimation: UIAnimationType
+        ActivationAnimation: function
+
+        passivationAnimation: UIAnimationType
+        PassivationAnimation: function
+
+        enterAnimation: UIAnimationType
+        EnterAnimation: function
+    
+        exitAnimation: UIAnimationType
+        ExitAnimation: function
+    
+        visibility: boolean
+        Visibility: function
+
+        viewModel: ViewModelBaseType
+
+        gameObject: GameObjectExtType
+        GameObject: function
+
+        RaiseActivatedChanged: function
+        RaiseStateChanged: function
+
+        OnActivatedChanged: function
+    end
+
+    Name: string
+    visibility: boolean
+    Visibility: boolean
+
+    activationAnimation: UIAnimationType
+    ActivationAnimation: UIAnimationType
+
+    passivationAnimation: UIAnimationType
+    PassivationAnimation: UIAnimationType
+
+    args: any
+
+    result: CS.Loxodon.Framework.Execution.CoroutineResult
+
+    window: WindowBaseType
+
+    messenger: MessengerType
+
+    dismissTransition: TransitionType
+    DismissTransition: TransitionType
+    enterAnimation: UIAnimationType
+    EnterAnimation: UIAnimationType
+    exitAnimation: UIAnimationType
+    ExitAnimation: UIAnimationType
+
+    created: boolean
+    dismissed: boolean
+    activated: boolean
+    Activated: boolean
+    
+    stateBroadcast: boolean
+    prefabPath: string
+    actionType: number
     windowType: number
+    WindowType: number
+    viewType: number
+    ViewType: number
+    state: number
+    State: number
+    
+    activatedChanged: {EventHandlerType}
+    ActivatedChanged: EventHandlerType
+    visibilityChanged: {EventHandlerType}
+    VisibilityChanged: EventHandlerType
+    onDismissed: {EventHandlerType}
+    OnDismissed: EventHandlerType
+    stateChanged: {EventHandlerType}
+    StateChanged: OptHandlerType
 
+    views: {ViewBaseType}
+    
+    viewModel: ViewModelBaseType
+    bindingExt: BindingExtensionType
+    bindingSet: BindingSetBaseType
+
+    root: GameObjectBindType
+    rectTransform: RectTransformBindType
+
+    canvas: CanvasBindType
+    canvasGroup: CanvasGroupBindType
+
+    parent: RectTransformBindType
+    Parent: RectTransformBindType
+
+    name: string
+    -- transform: TransformExtType
+    -- rectTransform: RectTransformExtType
+    gameObject: GameObjectExtType
+    variables: VariableArrayMonoExtType
+    components: {ComponentExtType}
+    gameObjects: {GameObjectExtType}
+
+    new: function(...: any): WindowBaseType
     ctor: function
+    delete: function
     dtor: function
 
-    OnCreate: function(WindowBaseType)
-
-    OnEnable: function(WindowBaseType)
-    OnDisable: function(WindowBaseType)
-
-    Show: function(WindowBaseType, boolean)
-    OnShow: function(WindowBaseType)
+    OnEnable: function(self: WindowBaseType)
+    OnDisable: function(self: WindowBaseType)
+    RaiseActivatedChanged: function(self: WindowBaseType)
+    RaiseVisibilityChanged: function(self: WindowBaseType)
+    RaiseOnDismissed: function(self: WindowBaseType)
+    RaiseStateChanged: function(self: WindowBaseType, number, number)
+    Activate: function(self: WindowBaseType, boolean): AsyncResultExtType
+    Passivate: function(self: WindowBaseType, boolean): AsyncResultExtType
+    Create: function(self: WindowBaseType)
+    OnCreate: function(self: WindowBaseType)
     
-    Hide: function(WindowBaseType, boolean)
-    OnHide: function(WindowBaseType)
+    Show: function(self: WindowBaseType, any, boolean)
+    DoShow: function(self: WindowBaseType, boolean): AsyncResultExtType
+    OnShow: function(self: WindowBaseType)
+    
+    Hide: function(self: WindowBaseType, boolean)
+    DoHide: function(self: WindowBaseType, boolean): AsyncResultExtType
+    OnHide: function(self: WindowBaseType)
+    
+    Dismiss: function(self: WindowBaseType, boolean)
+    DoDismiss: function(self: WindowBaseType)
+    OnDismiss: function(self: WindowBaseType)
 
-    Dismiss: function(WindowBaseType, boolean)
-    OnDismiss: function(WindowBaseType)
+    GetComponentWithName: function(self: WindowBaseType, ComponentExtType, string): ComponentExtType
+    GetGameObjectWithName: function(self: WindowBaseType, GameObjectExtType, string): GameObjectExtType
+    GetComponent: function(self: WindowBaseType, ComponentExtType): ComponentExtType
+    AddComponent: function(self: WindowBaseType, ComponentExtType): ComponentExtType
 
-    AddSubView: function(self: WindowBaseType, ViewBaseType)
-    PushViewStack: function(self: WindowBaseType, ViewBaseType)
-    PopViewStack: function(self: WindowBaseType): ViewBaseType
+    OnActivatedChanged: function(self: WindowBaseType)
+
+    Cancel: function
+
 end
 
 global record WindowFactoryType
@@ -1499,15 +1743,17 @@ end
 
 global record WindowManagerType
     record get
-        windowStack: {WindowFactoryType}
         Current: function
+        PreCurrent: function
+
+        windowStack: {WindowBaseType}
     end
 
     record TransitionHideType
         animationDisabled: boolean
         AnimationDisabled: boolean
         
-        window: WindowFactoryType
+        window: WindowBaseType
         dismiss: boolean
         manager: WindowManagerType
         
@@ -1525,7 +1771,7 @@ global record WindowManagerType
         overlayPolicy: function
         OverlayPolicy: function
     
-        window: WindowFactoryType
+        window: WindowBaseType
         dismiss: boolean
         manager: WindowManagerType
         
@@ -1537,15 +1783,18 @@ global record WindowManagerType
         DoTransition: function(self: TransitionShowType)
     end
 
-    current: WindowFactoryType
-    Current: WindowFactoryType
+    current: WindowBaseType
+    Current: WindowBaseType
+    preCurrent: WindowBaseType
+    PreCurrent: WindowBaseType
 
     layers: {LayerType}
-    windows: {string: WindowFactoryType}
-    windowStack: {WindowFactoryType}
-    hideWindows: {WindowFactoryType}
+    windows: {string: WindowBaseType}
+    windowStack: {WindowBaseType}
+    hideWindows: {WindowBaseType}
 
-    uiRoot: TransformExtType
+    uiRoot: RectTransformExtType
+    uiRemote: RectTransformExtType
 
     Instance: WindowManagerType
 
@@ -1558,17 +1807,17 @@ global record WindowManagerType
     OnEnable: function(self: WindowManagerType)
     OnDisable: function(self: WindowManagerType)
 
-    OpenWindow: function(self: WindowManagerType, name: string, parent: TransformExtType, ...: any): WindowFactoryType
-    CloseWindow: function(self: WindowManagerType, name: string)
+    ShowWindow: function(self: WindowManagerType, name: string, args: any, ignoreAnimation: boolean): WindowBaseType
+    HideWindow: function(self: WindowManagerType, name: string, ignoreAnimation: boolean)
 
-    Show: function(self: WindowManagerType, WindowFactoryType): TransitionType
-    Hide: function(self: WindowManagerType, WindowFactoryType): TransitionType
-    Dismiss: function(self: WindowManagerType, WindowFactoryType): TransitionType
+    Show: function(self: WindowManagerType, WindowBaseType): TransitionType
+    Hide: function(self: WindowManagerType, WindowBaseType): TransitionType
+    Dismiss: function(self: WindowManagerType, WindowBaseType): TransitionType
     
-    PushWindowStack: function(self: WindowManagerType, WindowFactoryType): WindowFactoryType
-    PopWindowStack: function(self: WindowManagerType): WindowFactoryType
-    ClearWindowStack: function(self: WindowManagerType, WindowFactoryType)
-    GetWindow: function(self: WindowManagerType, string): WindowFactoryType
+    PushWindowStack: function(self: WindowManagerType, WindowBaseType): WindowBaseType
+    PopWindowStack: function(self: WindowManagerType): WindowBaseType
+    ClearWindowStack: function(self: WindowManagerType, WindowBaseType)
+    GetWindow: function(self: WindowManagerType, string): WindowBaseType
     
     InitLayers: function(self: WindowManagerType)
     GetLayer: function(self: WindowManagerType, number): LayerType
@@ -1601,6 +1850,18 @@ global record WindowStateEventArgsType
 end
 
 global record ViewBaseType
+
+    record opt
+        activatedChanged: {string: OptHandlerType}
+        ActivatedChanged: function
+
+        visibilityChanged: {string: OptHandlerType}
+        VisibilityChanged: function
+    
+        onDismissed: {string: OptHandlerType}
+        OnDismissed: function
+    end
+
     record get
         messenger: MessengerType
         Messenger: function
@@ -1644,22 +1905,26 @@ global record ViewBaseType
         exitAnimation: UIAnimationType
         ExitAnimation: function
     
+        name: string
         Name: function
     
         parent: TransformExtType
         Parent: function
     
         gameObject: GameObjectExtType
-        Owner: function
+        GameObject: function
     
         transform: TransformExtType
         Transform: function
     
+        rectTransform: RectTransformExtType
+        RectTransform: function
+
         Visibility: function
 
-        Mutex: boolean
-
         viewModel: ViewModelBaseType
+
+        root: GameObjectBindType
     end
     
     record set
@@ -1697,11 +1962,16 @@ global record ViewBaseType
 
         viewModel: ViewModelBaseType
 
+        gameObject: GameObjectExtType
+
         RaiseActivatedChanged: function(set)
         RaiseStateChanged: function(set, number, number)
+
+        root: GameObjectBindType
     end
 
     Name: string
+    visibility: boolean
     Visibility: boolean
 
     activationAnimation: UIAnimationType
@@ -1710,15 +1980,15 @@ global record ViewBaseType
     passivationAnimation: UIAnimationType
     PassivationAnimation: UIAnimationType
 
-    bundle: any
+    args: any
 
-    window: WindowFactoryType
+    window: WindowBaseType
 
     messenger: MessengerType
 
     gameObject: GameObjectExtType
     transform: TransformExtType
-    bindTransform: BindRectTransformType
+    bindTransform: RectTransformBindType
 
     dismissTransition: TransitionType
     DismissTransition: TransitionType
@@ -1727,13 +1997,16 @@ global record ViewBaseType
     exitAnimation: UIAnimationType
     ExitAnimation: UIAnimationType
 
-    mutex: boolean
-    Mutex: boolean
-
     created: boolean
     dismissed: boolean
     activated: boolean
     Activated: boolean
+    
+    root: GameObjectBindType
+    rectTransform: RectTransformBindType
+
+    canvas: CanvasBindType
+    canvasGroup: CanvasGroupBindType
     
     stateBroadcast: boolean
     prefabPath: string
@@ -1743,7 +2016,12 @@ global record ViewBaseType
     ViewType: number
     state: number
     State: number
+
+    actionType: number
+    ActionType: function
     
+    result: CS.Loxodon.Framework.Execution.CoroutineResult
+
     activatedChanged: {EventHandlerType}
     ActivatedChanged: EventHandlerType
     visibilityChanged: {EventHandlerType}
@@ -1753,14 +2031,14 @@ global record ViewBaseType
     stateChanged: {EventHandlerType}
     StateChanged: OptHandlerType
 
-    views: {ViewBaseType}
+    views: {string: ViewBaseType}
     
     viewModel: ViewModelBaseType
     bindingExt: BindingExtensionType
     bindingSet: BindingSetBaseType
 
     name: string
-    parent: TransformExtType
+    parent: RectTransformExtType
     variables: VariableArrayMonoExtType
     components: {ComponentExtType}
     gameObjects: {GameObjectExtType}
@@ -1778,10 +2056,20 @@ global record ViewBaseType
     RaiseStateChanged: function(self: ViewBaseType, number, number)
     Activate: function(self: ViewBaseType, boolean): AsyncResultExtType
     Passivate: function(self: ViewBaseType, boolean): AsyncResultExtType
+   
     Create: function(self: ViewBaseType)
     OnCreate: function(self: ViewBaseType)
     
-    Show: function(self: ViewBaseType, boolean)
+    Init: function(self: ViewBaseType)
+    OnInit: function(self: ViewBaseType)
+    
+    Bind: function(self: ViewBaseType)
+    OnBind: function(self: ViewBaseType)
+    
+    Start: function(self: ViewBaseType)
+    OnStart: function(self: ViewBaseType)
+    
+    Show: function(self: ViewBaseType, any, boolean)
     DoShow: function(self: ViewBaseType, boolean): AsyncResultExtType
     OnShow: function(self: ViewBaseType)
     
@@ -1797,11 +2085,17 @@ global record ViewBaseType
     GetGameObjectWithName: function(self: ViewBaseType, GameObjectExtType, string): GameObjectExtType
     GetComponent: function(self: ViewBaseType, ComponentExtType): ComponentExtType
     AddComponent: function(self: ViewBaseType, ComponentExtType): ComponentExtType
+
+    ShowView: function
+    HideView: function
+    GetView: function
+
+    Cancel: function
 end
 
 -- Bind UnityEngine Object
 ----------------------------------------------------------------------------------------------
-global record BindGameObjectType
+global record GameObjectBindType
     record get
         activeSelf: boolean
         ActiveSelf: function    
@@ -1817,21 +2111,24 @@ global record BindGameObjectType
     activeSelf: boolean
     ActiveSelf: boolean
 
-    transform: BindTransformType
-    Transform: BindTransformType
+    transform: RectTransformBindType
+    Transform: RectTransformBindType
+
+    bindingSet: BindingSetType
 
     gameObjectExt: GameObjectExtType
 
     name: string
 
-    new: function(...: any): BindGameObjectType
+    new: function(...: any): GameObjectBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindGameObjectType, ViewBaseType, {number})
+    BindWithName: function(self: GameObjectBindType, ViewBaseType, {number})
+    BindWithObject: function(self: GameObjectBindType, ViewBaseType, LuaObject, {number})
 end
 
-global record BindTextType
+global record TextBindType
     record get
         text: string    
         Text: function    
@@ -1839,7 +2136,7 @@ global record BindTextType
         color: CS.UnityEngine.Color    
         Color: function    
     
-        gameObject: BindGameObjectType
+        gameObject: GameObjectBindType
         GameObject: function
     end 
     
@@ -1859,21 +2156,23 @@ global record BindTextType
     color: CS.UnityEngine.Color 
     Color: CS.UnityEngine.Color 
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: TextExtType
 
+    bindingSet: BindingSetType
+
     name: string
 
-    new: function(...: any): BindTextType
+    new: function(...: any): TextBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindTextType, ViewBaseType, {number})
+    BindWithName: function(self: TextBindType, ViewBaseType, {number})
 end
 
-global record BindButtonType
+global record ButtonBindType
     record get
         onClick: function    
         OnClick: function    
@@ -1881,7 +2180,7 @@ global record BindButtonType
         simpleCommand: SimpleCommandType    
         SimpleCommand: function    
     
-        gameObject: BindGameObjectType
+        gameObject: GameObjectBindType
         GameObject: function
     end 
     
@@ -1898,27 +2197,29 @@ global record BindButtonType
     onClick: function
     OnClick: function
 
-    transform: BindTransformType
-    Transform: BindTransformType
+    transform: TransformBindType
+    Transform: TransformBindType
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: ButtonExtType
 
     simpleCommand: SimpleCommandType    
     SimpleCommand: SimpleCommandType
+    
+    bindingSet: BindingSetType
 
     name: string
 
-    new: function(...: any): BindButtonType
+    new: function(...: any): ButtonBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindButtonType, ViewBaseType, {number})
+    BindWithName: function(self: ButtonBindType, ViewBaseType, {number})
 end
 
-global record BindCanvasType
+global record CanvasBindType
     record get
         overrideSorting: boolean
         OverrideSorting: function
@@ -1943,21 +2244,24 @@ global record BindCanvasType
     sortingOrder: number
     SortingOrder: number
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: CanvasExtType
 
+    bindingSet: BindingSetType
+
     name: string
 
-    new: function(...: any): BindCanvasType
+    new: function(...: any): CanvasBindType
     ctor: function
     dtor: function
     
-    BindWithName: function(self: BindCanvasType, ViewBaseType, {number})
+    BindWithName: function(self: CanvasBindType, ViewBaseType, {number})
+    BindWithComponent: function(self: CanvasBindType, ViewBaseType, {number})
 end
 
-global record BindCanvasGroupType
+global record CanvasGroupBindType
     record get
         alpha: number
         Alpha: function
@@ -1973,21 +2277,24 @@ global record BindCanvasGroupType
     alpha: number
     Alpha: number
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: CanvasGroupExtType
 
+    bindingSet: BindingSetType
+
     name: string
 
-    new: function(...: any): BindCanvasGroupType
+    new: function(...: any): CanvasGroupBindType
     ctor: function
     dtor: function
     
-    BindWithName: function(self: BindCanvasGroupType, ViewBaseType, {number})
+    BindWithName: function(self: CanvasGroupBindType, ViewBaseType, {number})
+    BindWithComponent: function(self: CanvasGroupBindType, ViewBaseType, {number})
 end
 
-global record BindRectTransformType
+global record RectTransformBindType
     record get
         offsetMax: CS.UnityEngine.Vector2
         OffsetMax: function
@@ -2014,16 +2321,22 @@ global record BindRectTransformType
 
     componentExt: RectTransformExtType
 
+    bindingSet: BindingSetType
+    
+    parent: RectTransformExtType
+    Parent: RectTransformExtType
+
     name: string
 
-    new: function(...: any): BindRectTransformType
+    new: function(...: any): RectTransformBindType
     ctor: function
     dtor: function
     
-    BindWithName: function(self: BindRectTransformType, ViewBaseType, {number})
+    BindWithName: function(self: RectTransformBindType, ViewBaseType, {number})
+    BindWithComponent: function(self: RectTransformBindType, ViewBaseType, {number})
 end
 
-global record BindTransformType
+global record TransformBindType
     record get
         parent: TransformExtType
         Parent: function
@@ -2036,6 +2349,12 @@ global record BindTransformType
     
         localScale: CS.UnityEngine.Vector3
         LocalScale: function
+
+        offsetMax: CS.UnityEngine.Vector2
+        OffsetMax: function
+    
+        offsetMin: CS.UnityEngine.Vector2
+        OffsetMin: function
     end 
     
     record set
@@ -2051,6 +2370,14 @@ global record BindTransformType
         localScale: CS.UnityEngine.Vector3
         LocalScale: function
 
+        offsetMax: CS.UnityEngine.Vector2
+        OffsetMax: function
+    
+        offsetMin: CS.UnityEngine.Vector2
+        OffsetMin: function
+
+        componentExt: TransformExtType
+
         Set: function(self: set, SetType, any, string, boolean)
     end 
     
@@ -2058,31 +2385,45 @@ global record BindTransformType
     Parent: TransformExtType
 
     localRotation: CS.UnityEngine.Quaternion
+    LocalRotation: CS.UnityEngine.Quaternion
+    
     localPosition: CS.UnityEngine.Vector3
+    LocalPosition: CS.UnityEngine.Vector3
+    
     localScale: CS.UnityEngine.Vector3
+    LocalScale: CS.UnityEngine.Vector3
 
     componentExt: TransformExtType
 
+    bindingSet: BindingSetType
+
+    OffsetMax: string
+    OffsetMin: string
+
+    offsetMax: CS.UnityEngine.Vector2
+    offsetMin: CS.UnityEngine.Vector2
+
     name: string
 
-    new: function(...: any): BindTransformType
+    new: function(...: any): TransformBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindTransformType, ViewBaseType, {number})
+    BindWithName: function(self: TransformBindType, ViewBaseType, {number})
+    BindWithComponent: function(self: TransformBindType, ViewBaseType, {number})
 end
 
-global record BindComponentType
+global record ComponentBindType
     record get
-        gameObject: BindGameObjectType
+        gameObject: GameObjectBindType
         GameObject: function
     end 
 
-    transform: BindTransformType
-    Transform: BindTransformType
+    transform: TransformBindType
+    Transform: TransformBindType
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: ComponentExtType
 
@@ -2091,10 +2432,10 @@ global record BindComponentType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindComponentType, ViewBaseType, {number})
+    BindWithName: function(self: ComponentBindType, ViewBaseType, {number})
 end
 
-global record BindInputFieldType
+global record InputFieldBindType
     record get
         text: string
         Text: function
@@ -2128,21 +2469,23 @@ global record BindInputFieldType
     text: string
     Text: string
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: InputFieldExtType
 
+    bindingSet: BindingSetType
+
     name: string
 
-    new: function(...: any): BindInputFieldType
+    new: function(...: any): InputFieldBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindInputFieldType, ViewBaseType, {number})
+    BindWithName: function(self: InputFieldBindType, ViewBaseType, {number})
 end
 
-global record BindToggleType
+global record ToggleBindType
     record get
         onValueChanged: function
         OnValueChanged: function
@@ -2167,21 +2510,23 @@ global record BindToggleType
     simpleCommand: SimpleCommandType    
     SimpleCommand: SimpleCommandType
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: ToggleExtType
 
+    bindingSet: BindingSetType
+
     name: string
 
-    new: function(...: any): BindToggleType
+    new: function(...: any): ToggleBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindToggleType, ViewBaseType, {number})
+    BindWithName: function(self: ToggleBindType, ViewBaseType, {number})
 end
 
-global record BindImageType
+global record ImageBindType
     record get
         sprite: CS.UnityEngine.Sprite
         Sprite: function
@@ -2206,42 +2551,49 @@ global record BindImageType
     fillAmount: number
     FillAmount: number
 
-    gameObject: BindGameObjectType
-    GameObject: BindGameObjectType
+    gameObject: GameObjectBindType
+    GameObject: GameObjectBindType
 
     componentExt: ImageExtType
 
+    bindingSet: BindingSetType
+
     name: string
 
-    new: function(...: any): BindImageType
+    new: function(...: any): ImageBindType
     ctor: function
     dtor: function
 
-    BindWithName: function(self: BindImageType, ViewBaseType, {number})
+    BindWithName: function(self: ImageBindType, ViewBaseType, {number})
 end
 
 global record WindowConfigTable
     Name: string
+    State: number
+    PrefabPath: string
     WindowType: number
     ViewConfig: ViewConfigTable
     ViewModel: ViewModelBaseType
+    Window: WindowBaseType
 end
 
 global record WindowConfigType
 
     record get
-        windowConfig: {string: WindowConfigTable}
+        windowConfig: {string: LuaObject}
         WindowConfig: function
 
-        viewConfig: {string: ViewConfigTable}
+        viewConfig: {string: LuaObject}
         ViewConfig: function
     end
 
-    windowConfig: {string: WindowConfigTable}
-    WindowConfig: {string: WindowConfigTable}
-    viewConfig: {string: ViewConfigTable}
-    ViewConfig: {string: ViewConfigTable}
+    windowConfig: {string: LuaObject}
+    WindowConfig: {string: LuaObject}
+    viewConfig: {string: LuaObject}
+    ViewConfig: {string: LuaObject}
     
+    config:{string: LuaObject}
+
     Instance: WindowConfigType
 
     __singleton: function(self: WindowConfigType): WindowConfigType
@@ -2290,8 +2642,11 @@ global record TransformExtType
     handler: CS.UnityEngine.Component
 
     CSObject: CS.UnityEngine.Component
+    localRotation: CS.UnityEngine.Quaternion
     LocalRotation: string
+    localPosition: CS.UnityEngine.Vector3
     LocalPosition: string
+    localScale: CS.UnityEngine.Vector3
     LocalScale: string
     Parent: string
 
@@ -2390,10 +2745,27 @@ global record RectTransformExtType
 end
 
 global record CanvasGroupExtType
+
+    record get
+        
+        alpha: function
+
+        handler: CS.UnityEngine.Component
+    end
+
+    record set
+        
+        alpha: function
+
+        handler: CS.UnityEngine.Component
+    end
+
     handler: CS.UnityEngine.Component
 
     CSObject: CS.UnityEngine.Component
+
     Alpha: string
+    alpha: number
 
     gameObject: GameObjectExtType
     GameObject: GameObjectExtType
@@ -2403,11 +2775,32 @@ global record CanvasGroupExtType
 end
 
 global record CanvasExtType
+
+    record get
+        
+        sortingOrder: function
+        overrideSorting: function
+
+        handler: CS.UnityEngine.Component
+    end
+
+    record set
+        
+        sortingOrder: function
+        overrideSorting: function
+
+        handler: CS.UnityEngine.Component
+    end
+
     handler: CS.UnityEngine.Component
 
     CSObject: CS.UnityEngine.Component
+    
     OverrideSorting: string
+    overrideSorting: boolean
+    
     SortingOrder: string
+    sortingOrder: number
 
     gameObject: GameObjectExtType
     GameObject: GameObjectExtType
@@ -2571,7 +2964,7 @@ global record ImageExtType
 end
 
 global record ExecutorsExtType
-    csharp: CS.Execution.Executors
+    csharp: CS.Loxodon.Framework.Execution.Executors
 
     Instance: ExecutorsExtType
 
@@ -2582,20 +2975,30 @@ global record ExecutorsExtType
     dtor: function
 
     WaitWhile: function(self: ExecutorsExtType, function): CS.System.Object
+    RunOnCoroutine: function(self: ExecutorsExtType, CS.System.Collections.IEnumerator): CS.Loxodon.Framework.Execution.CoroutineResult
+    RunOnCoroutineReturn: function(self: ExecutorsExtType, CS.System.Collections.IEnumerator): CS.UnityEngine.Coroutine
+    RunOnCoroutineNoReturn: function(self: ExecutorsExtType, CS.System.Collections.IEnumerator)
     RunOnMainThread: function(self: ExecutorsExtType, function)
-    RunOnCoroutine: function(self: ExecutorsExtType, function): CS.Asynchronous.AsyncResult
-    RunOnCoroutineNoReturn: function(self: ExecutorsExtType, function)
 end
 
 global record CoroutineExtType
-    GetEnumerator: function(function): function
-    Yield: function(CS.System.Object)
-    Wait: function(number)
+
+    Instance: CoroutineExtType
+
+    __singleton: function(self: CoroutineExtType): CoroutineExtType
+    
+    new: function(...: any): CoroutineExtType
+    ctor: function
+    dtor: function
+
+    GetEnumerator: function(CoroutineExtType, function): CS.System.Collections.IEnumerator
+    Yield: function(CoroutineExtType, CS.System.Object)
+    Wait: function(CoroutineExtType, number)
 end
 
 global record AsyncResultExtType
     record get
-        csharp: CS.Asynchronous.AsyncResult
+        csharp: CS.Loxodon.Framework.Asynchronous.AsyncResult
     
         IsDone: function
         Result: function
@@ -2603,7 +3006,7 @@ global record AsyncResultExtType
         IsCancelled: function
     end
 
-    csharp: CS.Asynchronous.AsyncResult
+    csharp: CS.Loxodon.Framework.Asynchronous.AsyncResult
 
     new: function(...: any): AsyncResultExtType
     ctor: function

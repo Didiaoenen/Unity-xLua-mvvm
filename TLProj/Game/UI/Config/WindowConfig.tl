@@ -1,48 +1,27 @@
-local ListExtention = require("LuaFramework.Common.ListExtention")
-local TestConfig = require("Game.UI.Test.TestConfig") as {{WindowConfigTable}, {ViewConfigTable}}
 
-local WindowConfigTableList: {{WindowConfigTable}} = {
-    TestConfig[1],
-}
-
-local ViewConfigTableList: {{ViewConfigTable}} = {
-    TestConfig[2],
-}
+local TestV = require("Game.UI.Test.TestV")
+-- local TestW = require("Game.UI.Test.TestW")
+local TestWin = require("Game.UI.Test.TestWin")
 
 WindowConfig = class("WindowConfig") as WindowConfigType
 
-function WindowConfig.get:WindowConfig(): {string: WindowConfigTable}
-    return self.windowConfig
-end
+local ViewCfg: {string: LuaObject} =
+{
+    [WindowNames.TestV] = TestV,
+}
 
-function WindowConfig.get:ViewConfig(): {string: ViewConfigTable}
-    return self.viewConfig
-end
+local WindowCfg: {string: LuaObject} =
+{
+    [WindowNames.TestWin] = TestWin,
+}
 
 function WindowConfig:ctor()
-    self.windowConfig = {}
-    self.viewConfig = {}
-    
-    self:InitWindowConfig()
-    self:InitViewConfig()
+    self.viewConfig = ViewCfg
+    self.windowConfig = WindowCfg
 end
 
 function WindowConfig:__singleton(): WindowConfigType
     return WindowConfig.new()
 end
 
-function WindowConfig:InitWindowConfig()
-    ListExtention.Foreach(WindowConfigTableList, function(_, configs: {WindowConfigTable})
-        ListExtention.Foreach(configs, function(_, config: WindowConfigTable)
-            self.windowConfig[config.Name] = config
-        end)
-    end)
-end
-
-function WindowConfig:InitViewConfig()
-    ListExtention.Foreach(ViewConfigTableList, function(_, configs: {ViewConfigTable})
-        ListExtention.Foreach(configs, function(_, config: ViewConfigTable)
-            self.viewConfig[config.Name] = config
-        end)
-    end)
-end
+return WindowConfig

@@ -75,13 +75,13 @@ local record TestVM
 
     window: WindowFactoryType
 
-    text: BindTextType
-    text1: BindTextType
-    button: BindButtonType
-    inputField: BindInputFieldType
-    gameObject: BindGameObjectType
-    toggle_1: BindToggleType
-    toggle_2: BindToggleType
+    text: TextBindType
+    text1: TextBindType
+    button: ButtonBindType
+    inputField: InputFieldBindType
+    gameObject: GameObjectBindType
+    toggle_1: ToggleBindType
+    toggle_2: ToggleBindType
 
     new: function(...: any): TestVM
     ctor: function

@@ -20,19 +20,19 @@ end
 function TransitionExecutor:Execute(transition: TransitionType)
     table.insert(self.transitions, transition)
     if not self.running then
-        self.taskResult = ExecutorsExt.Instance:RunOnCoroutine(CoroutineExt.GetEnumerator(function ()
+        self.taskResult = ExecutorsExt.Instance:RunOnCoroutine(CoroutineExt.Instance:GetEnumerator(function ()
             self:DoTask()
         end))
     end
 end
 
-function TransitionExecutor:ShutDone()
+function TransitionExecutor:ShutDown()
     if self.taskResult then
         self.taskResult:Cancel()
-        self.running = false
         self.taskResult = nil
+        self.running = false
     end
-    self.transitions = nil
+    self.transitions = {}
 end
 
 function TransitionExecutor:DoTask()
@@ -40,13 +40,13 @@ function TransitionExecutor:DoTask()
     {
         function ()
             self.running = true
-            CoroutineExt.Wait(0)
+            CoroutineExt.Instance:Wait(0)
             while #(self.transitions) > 0 do
                 local transition = table.remove(self.transitions, 1)
-                local result = ExecutorsExt.Instance:RunOnCoroutine(CoroutineExt.GetEnumerator(function ()
+                local result = ExecutorsExt.Instance:RunOnCoroutine(CoroutineExt.Instance:GetEnumerator(function ()
                     transition:TransitionTask()
                 end))
-                CoroutineExt.Yield(result:WaitForDone())
+                CoroutineExt.Instance:Yield(result:WaitForDone())
             end
         end,
         finally = function ()

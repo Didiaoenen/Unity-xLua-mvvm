@@ -1,22 +1,24 @@
-local EventTargetProxyBase = require("LuaFramework.Binding.Proxy.Targets.Universal.EventTargetProxyBase")
+local TargetProxyEventBase = require("LuaFramework.Binding.Proxy.Targets.TargetProxyEventBase")
 local IProxyInvoker = require("LuaFramework.Binding.Reflection.IProxyInvoker")
-local TableOprationMode = require("LuaFramework.Binding.TableOprationMode")
+local TableOperationMode = require("LuaFramework.Binding.TableOperationMode")
 local BindingMode = require("LuaFramework.Binding.BindingMode")
 local ICommand = require("LuaFramework.Commands.ICommand")
 
-local UnityEventProxyBase = class("UnityEventProxyBase", EventTargetProxyBase) as UnityEventProxyBaseType
+local UnityEventProxyBase = class("UnityEventProxyBase", TargetProxyEventBase) as UnityEventProxyBaseType
 
 function UnityEventProxyBase.get:DefaultMode(): number
     return BindingMode.OneWay
 end
 
 function UnityEventProxyBase:ctor(target: LuaObject, unityEvent: string)
-    EventTargetProxyBase.ctor(self, target)
+    TargetProxyEventBase.ctor(self, target)
 
     self.command = nil
     self.invoker = nil
     self.interactable = nil
     self.unityEvent = unityEvent
+
+    self:BindEvent()
 end
 
 function UnityEventProxyBase:BindEvent()
@@ -53,10 +55,6 @@ function UnityEventProxyBase:SetValue(value: any)
     end
 
     if type(value) == "table" then
-        if (value as LuaObject).is(IProxyInvoker) then
-            self.invoker = value as IProxyInvokerType
-            return
-        end
 
         if (value as LuaObject).is(ICommand) then
             if nil == self.interactable or "" == self.interactable then
@@ -68,6 +66,12 @@ function UnityEventProxyBase:SetValue(value: any)
             self:UpdateTargetInteractable()
             return
         end
+
+        if (value as LuaObject).is(IProxyInvoker) then
+            self.invoker = value as IProxyInvokerType
+            return
+        end
+
     end
 end
 
@@ -91,7 +95,7 @@ function UnityEventProxyBase:BindCommand(command: ICommandType)
         return
     end
 
-    command.CanExecuteChanged = {opt = TableOprationMode.Add, save = "", this = self, callback = self.OnCanExecuteChanged}
+    command.CanExecuteChanged = {opt = TableOperationMode.Add, save = "", this = self, callback = self.OnCanExecuteChanged}
 end
 
 function UnityEventProxyBase:UnbindCommand(command: ICommandType)
@@ -99,7 +103,7 @@ function UnityEventProxyBase:UnbindCommand(command: ICommandType)
         return
     end
 
-    command.CanExecuteChanged = {opt = TableOprationMode.Remove, save = ""}
+    command.CanExecuteChanged = {opt = TableOperationMode.Remove, save = ""}
 end
 
 function UnityEventProxyBase:dtor()

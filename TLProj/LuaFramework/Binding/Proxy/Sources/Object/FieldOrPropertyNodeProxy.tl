@@ -1,7 +1,7 @@
 local NotifiableSourceProxyBase = require("LuaFramework.Binding.Proxy.Sources.NotifiableSourceProxyBase")
 local INotifyPropertyChanged = require("LuaFramework.Binding.INotifyPropertyChanged")
 local UnityProxyRegister = require("LuaFramework.Binding.UnityProxyRegister")
-local TableOprationMode = require("LuaFramework.Binding.TableOprationMode")
+local TableOperationMode = require("LuaFramework.Binding.TableOperationMode")
 
 local FieldOrPropertyNodeProxy = class("FieldOrPropertyNodeProxy", NotifiableSourceProxyBase) as PropertyNodeProxyType
 
@@ -15,8 +15,8 @@ function FieldOrPropertyNodeProxy:ctor(source: LuaObject, propertyInfo: string)
 
     if self.source.is and self.source.is(INotifyPropertyChanged) then
         local sourceNotify = self.source as INotifyPropertyChangedType
-        sourceNotify.PropertyChanged = {opt = TableOprationMode.Add, save = self.propertyInfo, this = self, callback = self.OnPropertyChanged}
-    end    
+        sourceNotify.PropertyChanged = {opt = TableOperationMode.Add, save = self.propertyInfo, this = self, callback = self.OnPropertyChanged}
+    end
 end
 
 function FieldOrPropertyNodeProxy:OnPropertyChanged(sender: LuaObject, e: PropertyChangedEventArgsType)

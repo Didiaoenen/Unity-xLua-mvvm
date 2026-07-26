@@ -82,7 +82,7 @@ function ViewModelBase.set:Alpha(value: number)
     self:Set({name = "alpha"}, value, "Alpha")
 end
 
-function ViewModelBase:ctor(window: WindowFactoryType)
+function ViewModelBase:ctor(window: WindowBaseType)
     ObservableObject.ctor(self)
     -- self.messenger = messenger
 
@@ -110,8 +110,8 @@ function ViewModelBase:SetWithBroadCast(field: SetType, newValue: any, propertyN
     end
 end
 
-function ViewModelBase:Broadcast(oldValue: any, newVlaue: any, propertyName: string)
-    assert({oldValue, newVlaue, propertyName}, "")
+function ViewModelBase:Broadcast(oldValue: any, newValue: any, propertyName: string)
+    assert({oldValue, newValue, propertyName}, "")
 end
 
 function ViewModelBase:dtor()

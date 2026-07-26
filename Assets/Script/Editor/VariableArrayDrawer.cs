@@ -73,7 +73,7 @@ namespace Loxodon.Framework.Editors
         {
             if (property.serializedObject.isEditingMultipleObjects)
             {
-                EditorGUI.HelpBox(position,"Components that are only on of the selected objects cannot be multi-edited", MessageType.Warning);
+                EditorGUI.HelpBox(position,"ComponentExts that are only on of the selected objects cannot be multi-edited", MessageType.Warning);
                 return;
             }
 

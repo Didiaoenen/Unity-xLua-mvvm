@@ -3,8 +3,8 @@ local ITargetProxyFactory = class("ITargetProxyFactory") as ITargetProxyFactoryT
 function ITargetProxyFactory:ctor()
 end
 
-function ITargetProxyFactory:CreateProxy(target: LuaObject, discription: BindingDescriptionType): TargetProxyBaseType
-    assert({target, discription}, "")
+function ITargetProxyFactory:CreateProxy(target: LuaObject, description: BindingDescriptionType): TargetProxyBaseType
+    assert({target, description}, "")
 end
 
 return ITargetProxyFactory

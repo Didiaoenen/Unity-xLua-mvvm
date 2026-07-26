@@ -9,7 +9,7 @@ end
 function SimpleCommand.set:Enabled(value: boolean)
     if value ~= self.enabled then
         self.enabled = value
-        self:RaiseCanExecuteChanged()
+        self:RaiseExecuteChanged()
     end
 end
 

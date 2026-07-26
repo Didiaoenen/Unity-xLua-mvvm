@@ -12,7 +12,7 @@ require("Game.UI.Config.WindowConfig")
 require("LuaFramework.Views.WindowManager")
 
 global function Main(): number
-    WindowManager.Instance:OpenWindow(WindowNames.Test)
+    WindowManager.Instance:ShowWindow(WindowNames.TestWin)
 
     return 1
 end

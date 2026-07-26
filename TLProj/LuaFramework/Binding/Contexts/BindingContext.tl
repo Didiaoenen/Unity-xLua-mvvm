@@ -1,5 +1,5 @@
 local StandardBinder = require("LuaFramework.Binding.Binders.StandardBinder")
-local ListExtention = require("LuaFramework.Common.ListExtention")
+local ListExtension = require("LuaFramework.Common.ListExtension")
 
 local BindingContext = class("BindingContext") as BindingContextType
 
@@ -38,7 +38,7 @@ function BindingContext:OnDataContextChanged()
 end
 
 function BindingContext:RaiseDataContextChanged()
-    ListExtention.Foreach(self.dataContextChanged, function(_: number, v: EventHandlerType)
+    ListExtension.Foreach(self.dataContextChanged, function(_: number, v: EventHandlerType)
         v.callback(v.this)
     end)
 end

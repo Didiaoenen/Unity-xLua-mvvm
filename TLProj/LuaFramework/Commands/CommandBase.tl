@@ -1,15 +1,15 @@
 local ICommand = require("LuaFramework.Commands.ICommand")
-local TableOprationMode = require("LuaFramework.Binding.TableOprationMode")
-local MapExtention = require("LuaFramework.Common.MapExtention")
+local TableOperationMode = require("LuaFramework.Binding.TableOperationMode")
+local MapExtension = require("LuaFramework.Common.MapExtension")
 
 local CommandBase = class("CommandBase", ICommand) as CommandBaseType
 
 function CommandBase.opt:CanExecuteChanged(value: OptHandlerType)
-    if value.opt == TableOprationMode.Add then
+    if value.opt == TableOperationMode.Add then
         self.canExecuteChanged[value.save] = value
     end
     
-    if value.opt == TableOprationMode.Remove then
+    if value.opt == TableOperationMode.Remove then
         self.canExecuteChanged[value.save] = nil
     end
 end
@@ -20,7 +20,7 @@ function CommandBase:ctor()
 end
 
 function CommandBase:RaiseExecuteChanged()
-    MapExtention.Foreach(self.canExecuteChanged, function(_: number, v: OptHandlerType)
+    MapExtension.Foreach(self.canExecuteChanged, function(_: number, v: OptHandlerType)
         v.callback(v.this)
     end)
 end

@@ -1,6 +1,7 @@
 local record TestV
     PrefabPath: string
 
+    prefabPath: string
     windowType: number 
 
     viewModel: TestVMType

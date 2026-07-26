@@ -1,4 +1,4 @@
-local record MapExtention
+local record MapExtension
     Foreach: function({any: any}, function)
     Exists: function({any: any}, function): boolean
     RemoveObj: function({any: any}, any): boolean
@@ -8,4 +8,4 @@ local record MapExtention
     IsNilOrEmpty: function({any: any}): boolean
 end
 
-return MapExtention
+return MapExtension

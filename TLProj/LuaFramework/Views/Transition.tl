@@ -1,15 +1,15 @@
 local CoroutineExt = require("LuaFramework.Common.CoroutineExt")
 local ExecutorsExt = require("LuaFramework.Execution.ExecutorsExt")
 local TransitionAwaiter = require("LuaFramework.Views.TransitionAwaiter")
-local TableOprationMode = require("LuaFramework.Binding.TableOprationMode")
+local TableOperationMode = require("LuaFramework.Binding.TableOperationMode")
 
 local Transition = class("Transition") as TransitionType
 
-function Transition.get:Window(): WindowFactoryType
+function Transition.get:Window(): WindowBaseType
     return self.window
 end
 
-function Transition.set:Window(value: WindowFactoryType)
+function Transition.set:Window(value: WindowBaseType)
     self.window = value
 end
 
@@ -37,7 +37,7 @@ function Transition.set:OverlayPolicy(value: function)
     self.overlayPolicy = value
 end
 
-function Transition:ctor(window: WindowFactoryType)
+function Transition:ctor(window: WindowBaseType)
     self.window = window
     self.done = false
     self.animationDisabled = false
@@ -56,8 +56,8 @@ function Transition:Bind()
 
     self.bound = true
     if self.window then
-        local view = self.window.view
-        view.StateChanged = {opt = TableOprationMode.Add, this = self, callback = self.StateChanged}
+        local view = self.window
+        view.StateChanged = {opt = TableOperationMode.Add, save = "StateChanged", this = self, callback = self.StateChanged}
     end
 end
 
@@ -68,8 +68,8 @@ function Transition:Unbind()
 
     self.bound = false
     if self.window then
-        local view = self.window.view
-        view.StateChanged = {opt = TableOprationMode.Remove, this = self}
+        local view = self.window
+        view.StateChanged = {opt = TableOperationMode.Remove, save = "StateChanged", this = self}
     end
 end
 
@@ -79,8 +79,8 @@ function Transition:WaitForDone(): CS.System.Object
     end)
 end
 
-function Transition:StateChanged(sender: ViewBaseType, args: WindowStateEventArgsType)
-    self:RaiseStateChanged(sender, args.State)
+function Transition:StateChanged(sender: ViewBaseType, state: number)
+    self:RaiseStateChanged(sender, state)
 end
 
 function Transition:RaiseStateChanged(window: ViewBaseType, state: number)
@@ -157,10 +157,10 @@ function Transition:TransitionTask()
     self.running = true
     self:OnStart()
     
-    local result = ExecutorsExt.Instance:RunOnCoroutine(CoroutineExt.GetEnumerator(function ()
+    local result = ExecutorsExt.Instance:RunOnCoroutine(CoroutineExt.Instance:GetEnumerator(function ()
         self:DoTransition()
     end))
-    CoroutineExt.Yield(result:WaitForDone())
+    CoroutineExt.Instance:Yield(result:WaitForDone())
 
     self:OnEnd()
 end

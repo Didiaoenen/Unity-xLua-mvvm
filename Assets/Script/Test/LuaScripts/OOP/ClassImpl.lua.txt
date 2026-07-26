@@ -1,0 +1,674 @@
+
+local Config = require("OOP.Config")
+
+local Field       = Config.Field
+local Tables      = Config.Tables
+local BitMap      = Config.BitMap
+local MetaFunc    = Config.MetaFunc
+
+local is          = Field.is
+local new         = Field.new
+local delete      = Field.delete
+
+local ctor        = Field.ctor
+local dtor        = Field.dtor
+
+local static      = Field.static
+local get         = Field.get
+local set         = Field.set
+local opt         = Field.opt
+
+local __new       = Field.__new
+local __delete    = Field.__delete
+local __singleton = Field.__singleton
+
+local __internal  = Field.__internal
+
+--
+local ClassesNamed       = Tables.ClassesNamed
+local ClassesChildByName = Tables.ClassesChildByName
+
+local DeathMark          = Tables.DeathMark
+
+local ClassesMembers     = Tables.ClassesMembers
+local ClassesMetaFunc    = Tables.ClassesMetaFunc
+
+local ClassesBases       = Tables.ClassesBases
+local ClassesChild       = Tables.ClassesChild
+local ClassesWritable    = Tables.ClassesWritable
+local ClassesReadable    = Tables.ClassesReadable
+
+local ClassesNew         = Tables.ClassesNew
+local ClassesDelete      = Tables.ClassesDelete
+local ClassesStatic      = Tables.ClassesStatic
+local ClassesSingleton   = Tables.ClassesSingleton
+
+local ClassesRouter      = Tables.ClassesRouter
+
+--
+local p_static = BitMap.static
+local p_get    = BitMap.get
+local p_set    = BitMap.set
+local p_opt    = BitMap.opt
+local p_gs     = p_get | p_set
+
+local ClassImpl = {}
+
+function ClassImpl.Null(pObj)
+    local objType = type(pObj)
+    if "table" == objType or "userdata" == objType then
+        return DeathMark[pObj] == true
+    end
+    return not pObj
+end
+
+function ClassImpl.GetSingleton(pObj, pCall)
+    local singleCls = ClassesSingleton[pObj]
+    if ClassImpl.Null(singleCls) then
+        singleCls = pCall(pObj)
+        ClassesSingleton[pObj] = singleCls
+    end
+    return singleCls
+end
+
+function ClassImpl.DestroySingleton(pObj, pValue)
+    if not pValue then
+        local singleCls = ClassesSingleton[pObj]
+        if not ClassImpl.Null(singleCls) then
+            singleCls:delete()
+            ClassesSingleton[pObj] = nil
+        end
+    end
+end
+
+function ClassImpl.CreateClass(pName)
+
+    local cls = { [Field.__name] = pName }
+    
+    if ClassesNamed[pName] then
+        error(("You cannot use this name \"%s\", which is already used by other class.").format(pName))
+    else
+        ClassesNamed[pName] = cls
+    end
+
+    return cls
+end
+
+function ClassImpl.PushBase(pCls, pBase)
+
+    local found = ClassesMembers[pBase]
+    if found then
+        for key, value in pairs(found) do
+            ClassesMembers[pCls][key] = value
+        end
+    end
+
+    found = ClassesMetaFunc[pBase]
+    if found then
+        local metaFunc = ClassesMetaFunc[pCls]
+        for key, value in pairs(MetaFunc) do
+            local meta = found[key]
+            if meta and not metaFunc[key] then
+                metaFunc[key] = meta
+            end
+        end
+    end
+
+    local bmt = getmetatable(pBase)
+    if bmt then
+        local mt = getmetatable(pCls)
+        for key, value in pairs(MetaFunc) do
+            local meta = bmt[key]
+            if meta and not mt[key] then
+                mt[key] = meta
+            end
+        end
+    end
+
+    local newCls = ClassesNew[pBase]
+    if newCls then
+        ClassesNew[pCls] = newCls
+    end
+
+    local deleteCls = ClassesDelete[pBase]
+    if deleteCls then
+        ClassesDelete[pCls] = deleteCls
+    end
+
+    local bases = ClassesBases[pCls]
+    if bases then
+        table.insert(bases, pBase)
+    end
+
+    local child = ClassesChild[pBase]
+    if child then
+        table.insert(child, pCls)
+    end
+end
+
+function ClassImpl.ClassIs(pCls, pBase)
+    if pBase == nil then
+        return false
+    elseif pBase == pCls then
+        return true
+    end
+    return ClassImpl.ClassBasesIsRecursive(pBase, ClassesBases[pCls])
+end
+
+function ClassImpl.CreateClassIs(pCls)
+    return function (pBase)
+        return ClassImpl.ClassIs(pCls, pBase)
+    end
+end
+
+function ClassImpl.CreateClassObject(pCls, ...)
+    local newCls = ClassesNew[pCls]
+    
+    local obj = newCls and newCls(...) or {}
+
+    local tempObj = nil
+    if "table" == type(obj) then
+        tempObj = obj
+        tempObj[Field.__name] = pCls[Field.__name]
+    end
+    return tempObj
+end
+
+function ClassImpl.CascadeGet(pCls, pKey, pCalled, pByObject)
+    
+    if pCalled[pCls] then
+        return
+    end
+
+    pCalled[pCls] = true
+    
+    local ret = rawget(pCls, pKey)
+    if ret then
+        return ret
+    end
+
+    if not pByObject then
+        local staticCls = ClassesStatic[pCls]
+        if staticCls then
+            ret = staticCls[pKey]
+            if ret then
+                return ret[1]
+            end
+        end
+    end
+
+    local baseCls = ClassesBases[pCls]
+    if baseCls then
+        for _, base in ipairs(baseCls) do
+            ret = ClassImpl.CascadeGet(base, pKey, pCalled, pByObject)
+            if ret then
+                return ret
+            end
+        end
+    end
+
+end
+
+function ClassImpl.RegisterMembers(pCls)
+    local memberCls = ClassesMembers[pCls]
+    for key, value in pairs(memberCls) do
+        rawset(pCls, key, ClassImpl.Copy(value))
+    end
+end
+
+function ClassImpl.MakeInternalObjectMeta(pCls)
+
+    local metaFunc = ClassesMetaFunc[pCls]
+
+    metaFunc.__index = function (pTable, pKey)
+        
+        local property = ClassesReadable[pCls][pKey]
+        if property and not property[2] then
+            return property[1](pTable)
+        end
+
+        local ret = rawget(pCls, pKey)
+        if ret then
+            return ret
+        end
+
+        for _, base in ipairs(ClassesBases[pCls]) do
+            ret = ClassImpl.CascadeGet(base, pKey, {}, true)
+            if ret then
+                return ret
+            end
+        end
+    end
+
+    metaFunc.__newindex = function (pTable, pKey, pValue)
+        
+        local property = ClassesWritable[pCls][pKey]
+        if property and not property[2] then
+            property[1](pTable, pValue)
+            return
+        end
+
+        rawset(pTable, pKey, pValue)
+    end
+end
+
+function ClassImpl.CascadeDelete(pObj, pCls, pCalled)
+    
+    if pCalled[pCls] then
+        return
+    end
+
+    local deleteCls = rawget(pCls, dtor)
+    if deleteCls then
+        deleteCls(pObj)
+    end
+
+    pCalled[pCls] = true
+
+    local bases = ClassesBases[pCls]
+    if bases then
+        for _, base in ipairs(bases) do
+            ClassImpl.CascadeDelete(pObj, base, pCalled)
+        end
+    end
+end
+
+function ClassImpl.CreateClassDelete(pCls)
+    
+    return function (pObj)
+
+        ClassImpl.CascadeDelete(pObj, pCls, {})
+        local deleteCls = ClassesDelete[pCls]
+        if deleteCls then
+            deleteCls(pObj)
+        else
+            if "userdata" == type(pObj) then
+                setmetatable(pObj, nil)
+            else
+                setmetatable(pObj, nil)
+                if Config.ClearMembersInRelease then
+                    for key, value in pairs(pObj) do
+                        pObj[key] = nil
+                    end
+                end
+
+            end
+        end
+
+        DeathMark[pObj] = true
+    end
+end
+
+function ClassImpl.CreateClassTables(pCls)
+
+    ClassesBases[pCls] = {}
+    ClassesChild[pCls] = {}
+
+    ClassesStatic[pCls] = {}
+    ClassesMembers[pCls] = {}
+
+    --
+    local readableMeta = {}
+    local readable = setmetatable({}, readableMeta)
+
+    readableMeta.__index = function (pTable, pKey)
+        for _, base in ipairs(ClassesBases[pCls]) do
+            local readableCls = ClassesReadable[base]
+            if readableCls and readableCls[pKey] then
+                return readableCls[pKey]
+            end
+        end
+    end
+
+    --
+    local writableMeta = {}
+    local writable = setmetatable({}, writableMeta)
+
+    writableMeta.__index = function (pTable, pKey)
+        for _, base in ipairs(ClassesBases[pCls]) do
+            local writableCls = ClassesWritable[base]
+            if writableCls and writableCls[pKey] then
+                return writableCls[pKey]
+            end
+        end
+    end
+
+    --
+    local routerMeta = {}
+    local router = setmetatable({decor = 0}, routerMeta)
+
+    routerMeta.__index = function (pTable, pKey)
+        return ClassImpl.RouterGet(pCls, pTable, pKey)
+    end
+
+    routerMeta.__newindex = function (pTable, pKey, pValue)
+        ClassImpl.RouterSet(pCls, pTable, pKey, pValue)
+    end
+
+    ClassesRouter[pCls] = router
+    ClassesReadable[pCls] = readable
+    ClassesWritable[pCls] = writable
+
+    ClassesMetaFunc[pCls] = { [Field.__internal] = true }
+end
+
+function ClassImpl.AttachClassFunctions(pCls, pIs, pNew, pDelete)
+    pCls[is] = pIs
+    pCls[delete] = pDelete
+
+    ClassesStatic[pCls][new] = {pNew}
+end
+
+function ClassImpl.CreateClassInherit(pCls, pArgs)
+
+    local children = ClassesChildByName[pCls.__name]
+    if children then
+        ClassesChild[pCls] = children
+        ClassesChildByName[pCls.__name] = nil
+
+        for _, child in ipairs(children) do
+            table.insert(ClassesBases[child], pCls)
+        end
+    end
+
+    for _, base in ipairs(pArgs) do
+        if base then
+            ClassImpl.PushBase(pCls, base)
+        end
+    end
+end
+
+function ClassImpl.ClassGet(pCls, pKey)
+
+    if Config.BitMap[pKey] then
+        ClassesRouter[pCls].decor = 0
+        return ClassImpl.RouterGet(pCls, ClassesRouter[pCls], pKey)
+    end
+    
+    local property = ClassesReadable[pCls][pKey]
+    if property and property[2] then
+        return property[1](pCls)
+    end
+
+    local ret = ClassesStatic[pCls][pKey]
+    if ret then
+        return ret[1]
+    end
+
+    ret = ClassesMembers[pCls][pKey]
+    if ret then
+        return ret
+    end
+
+    for _, base in ipairs(ClassesBases[pCls]) do
+        ret = ClassImpl.CascadeGet(base, pKey, {})
+        if ret then
+            return ret
+        end
+    end
+end
+
+--
+function ClassImpl.ClassSet(pCls, pKey, pValue)
+    if pKey == __new then
+
+        ClassesNew[pCls] = pValue
+        ClassImpl.Update2Children(pCls, ClassesNew, pValue)
+
+    elseif pKey == __delete then
+
+        ClassesDelete[pCls] = pValue
+        ClassImpl.Update2Children(pCls, ClassesDelete, pValue)
+
+    elseif pKey == __singleton then
+
+        pCls[static][get][Field.Instance] = function ()
+            return ClassImpl.GetSingleton(pCls, pValue)
+        end
+
+        pCls[static][set][Field.Instance] = function ()
+            ClassImpl.DestroySingleton(pCls)
+        end
+
+    else
+
+        local property = ClassesWritable[pCls][pKey]
+        if property and property[2] then
+            property[1](pCls, pValue)
+            return
+        end
+
+        local metaValue = Config.BitMap[pKey]
+        if metaValue then
+            ClassesMetaFunc[pCls][metaValue] = pValue
+            ClassImpl.Update2ChildrenWithKey(pCls, ClassesMetaFunc, metaValue, pValue)
+            return
+        end
+
+        local staticValue = ClassesStatic[pCls][pKey]
+        if staticValue then
+            staticValue[1] = pValue
+            return
+        end
+
+        if "function" == type(pValue) then
+            rawset(pCls, pKey, pValue)
+        else
+            if not rawget(pCls, pKey) then
+                ClassesMembers[pCls][pKey] = pValue
+                ClassImpl.Update2ChildrenWithKey(pCls, ClassesMembers, pKey, pValue)
+            end
+        end
+    end
+end
+
+--------
+function ClassImpl.Update2Children(pCls, pKeyTable, pValue)
+    local children = ClassesChild[pCls]
+    for _, child in ipairs(children) do
+        if not pKeyTable[child] then
+            pKeyTable[child] = pValue
+        end
+        ClassImpl.Update2Children(child, pKeyTable, pValue)
+    end
+end
+
+function ClassImpl.Update2ChildrenWithKey(pCls, pKeyTable, pKey, pValue, pForce)
+    local children = ClassesChild[pCls]
+    for _, child in ipairs(children) do
+        local temp = pKeyTable[child]
+        if pForce and temp or not temp[pKey] then
+            temp[pKey] = pValue
+        end
+        ClassImpl.Update2ChildrenWithKey(child, pKeyTable, pKey, pValue, pForce)
+    end
+end
+
+function ClassImpl.Update2ChildrenClassMeta(pCls, pKey, pValue)
+    local children = ClassesChild[pCls]
+    for _, child in ipairs(children) do
+        local mt = getmetatable(child)
+        if mt and not mt[pKey] then
+            mt[pKey] = pValue
+        end
+        ClassImpl.Update2ChildrenClassMeta(child, pKey, pValue)
+    end
+end
+
+function ClassImpl.Copy(pAny)
+    local _Copy
+    
+    _Copy = function(pAny, pExistTab)
+
+        if "table" ~= type(pAny) then
+            return pAny
+        end
+
+        local ret = pExistTab[pAny]
+        if ret then
+            return ret
+        end
+    
+        local tempTab = {}
+        pExistTab[pAny] = tempTab
+
+        for key, value in pairs(pAny) do
+            tempTab[_Copy(key, pExistTab)] = _Copy(value, pExistTab)
+        end
+        
+        return tempTab
+    end
+
+    return _Copy(pAny, {})
+end
+
+function ClassImpl.ClassBasesIsRecursive(pBaseCls, pBases)
+    for _, base in ipairs(pBases) do
+        if rawequal(base, pBaseCls) then
+            return true
+        else
+            local bBases = ClassesBases[base]
+            if bBases and ClassImpl.ClassBasesIsRecursive(pBaseCls, bBases) then
+                return true
+            end
+        end
+    end
+    return false
+end
+-------
+
+-------
+function ClassImpl.RouterGet(pCls, pRouter, pKey)
+
+    local bit = BitMap[pKey]
+
+    if bit then
+        pRouter.decor = pRouter.decor | bit
+    else
+
+        local gs = pRouter.decor & p_gs
+        if gs ~= 0 then
+            local property = (gs == p_get and ClassesReadable or ClassesWritable)[pCls][pKey]
+            return property and property[1] or nil
+        end
+
+        local opt = pRouter.decor & p_opt
+        if opt ~= 0 then
+            local property = ClassesWritable[pCls][pKey]
+            return property and property[1] or nil
+        end
+    end
+    
+    return pRouter
+end
+
+function ClassImpl.RouterSet(pCls, pRouter, pKey, pValue)
+
+    local isStatic = pRouter.decor & p_static ~= 0
+    
+    local bit = BitMap[pKey]
+    if bit then
+        if isStatic then
+            ClassImpl.Update2ChildrenClassMeta(pCls, bit, pValue)
+            local mt = getmetatable(pCls)
+            mt[bit] = pValue
+        else
+            ClassImpl.Update2ChildrenWithKey(pCls, ClassesMetaFunc, bit, pValue)
+            local metaFunc = ClassesMetaFunc[pCls]
+            metaFunc[bit] = pValue
+        end
+        return
+    end
+
+    local gs = pRouter.decor & p_gs
+    local opt = pRouter.decor & p_opt
+
+    if gs ~= 0 or opt ~= 0 or isStatic then
+
+        local memberCls = ClassesMembers[pCls]
+        if memberCls[pKey] then
+            memberCls[pKey] = nil
+            ClassImpl.Update2ChildrenWithKey(pCls, ClassesMembers, pKey, nil, true)
+        end
+        
+        if gs ~= 0 then
+            (gs == p_get and ClassesReadable or ClassesWritable)[pCls][pKey] = {pValue, isStatic}
+        elseif opt ~= 0 then
+            ClassesWritable[pCls][pKey] = {pValue, isStatic}
+        else
+            local staticCls = ClassesStatic[pCls]
+            if not staticCls[pKey] then
+                staticCls[pKey] = {pValue}
+            else
+                staticCls[pKey][1] = pValue
+            end
+        end
+    else
+
+        ClassesStatic[pCls][pKey] = nil
+        ClassesReadable[pCls][pKey] = nil
+        ClassesWritable[pCls][pKey] = nil
+
+        if "function" == type(pValue) then
+            rawset(pCls, pKey, pValue)
+        else
+            ClassesMembers[pCls][pKey] = pValue
+            ClassImpl.Update2ChildrenWithKey(pCls, ClassesMembers, pKey, pValue)
+        end
+    end
+end
+
+-------
+
+-------
+local ClassCreateLayer = 0
+
+function ClassImpl.ObjectInit(pObj, pCls, ...)
+    local init = pCls[ctor]
+    if init then
+        local temp = ClassCreateLayer
+        
+        ClassCreateLayer = 0
+        local ok, msg = pcall(init, pObj, ...)
+        ClassCreateLayer = ClassCreateLayer + temp - 1
+        if not ok then
+            error(msg)
+        end
+    else
+        ClassCreateLayer = ClassCreateLayer - 1
+    end
+end
+
+function ClassImpl.CreateClassNew(pCls)
+    return function(...)
+        
+        ClassCreateLayer = ClassCreateLayer + 1
+        local ok, obj = pcall(ClassImpl.CreateClassObject, pCls, ...)
+        if not ok or not obj then
+            if obj then
+                print("An error occurred when creating the object -", obj)
+            end
+            ClassCreateLayer = ClassCreateLayer - 1
+            if not ok then
+                error(obj)
+            end
+            return nil
+        end
+
+        if ClassCreateLayer == 1 then
+            ClassImpl.RegisterMembers(pCls)
+            local metaFunc = getmetatable(obj)
+            if not metaFunc or rawget(metaFunc, __internal) then
+                setmetatable(obj, ClassesMetaFunc[pCls])
+            end
+            ClassImpl.ObjectInit(obj, pCls, ...)
+        else
+            ClassCreateLayer = ClassCreateLayer - 1
+        end
+
+        return obj
+    end
+end
+-------
+
+return ClassImpl

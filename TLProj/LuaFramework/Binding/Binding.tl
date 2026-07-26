@@ -49,10 +49,10 @@ function Binding:IsSubscribeTargetValueChanged(bindingMode: number): boolean
         return true
     elseif bindingMode == BindingMode.OneWay then
         return false
-    elseif bindingMode == BindingMode.OneTime then
-        return false
     elseif bindingMode == BindingMode.TwoWay then
         return true
+    elseif bindingMode == BindingMode.OneTime then
+        return false
     elseif bindingMode == BindingMode.OneWayToSource then
         return true
     end
@@ -138,9 +138,9 @@ function Binding:UpdateTargetOnFirstBind(bindingMode: number): boolean
         return true
     elseif bindingMode == BindingMode.OneWay then
         return true
-    elseif bindingMode == BindingMode.OneTime then
-        return true
     elseif bindingMode == BindingMode.TwoWay then
+        return true
+    elseif bindingMode == BindingMode.OneTime then
         return true
     elseif bindingMode == BindingMode.OneWayToSource then
         return false
@@ -148,16 +148,16 @@ function Binding:UpdateTargetOnFirstBind(bindingMode: number): boolean
 end
 
 function Binding:UpdateSourceOnFirstBind(bindingMode: number): boolean
-    if bindingMode == BindingMode.OneWayToSource then
-        return true
-    elseif bindingMode == BindingMode.Default then
+    if bindingMode == BindingMode.Default then
         return false
     elseif bindingMode == BindingMode.OneWay then
         return false
-    elseif bindingMode == BindingMode.OneTime then
-        return false
     elseif bindingMode == BindingMode.TwoWay then
         return false
+    elseif bindingMode == BindingMode.OneTime then
+        return false
+    elseif bindingMode == BindingMode.OneWayToSource then
+        return true
     end
 end
 
